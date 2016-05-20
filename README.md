@@ -16,7 +16,8 @@ An Overview of New York's central park produced with OpenGL. This is a Final Pro
 
 6. **Please avoid magic numbers**
  
-7. Add comments on top of **all methods** - Describe what the method does, Explain the paramenter
+7. Add comments on top of **all methods**. All made by US. There's no need for documenting OpenGL, GLEW, GLFW functions (Example : callback functions). 
+8. Describe what the method does, Explain the paramenter
  * Example:
      ```
      /**
