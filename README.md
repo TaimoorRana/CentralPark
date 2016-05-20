@@ -11,8 +11,12 @@ Coding Conventions:
 3. // - for single line comment
 4. /* */ - for multi line comment
 
+5. Add comments on top of code that might not be obvious to others
 
-5. Add comments on top of all methods - Describe what the method does, Explain the paramenter
+
+6. Please avoid magic numbers
+ 
+7. Add comments on top of all methods - Describe what the method does, Explain the paramenter
  * Example:
      ```
      /**
@@ -21,10 +25,9 @@ Coding Conventions:
      *amount : number to multiply by
      *return : the y positon of the next cube
      **/
-     int example (int yPos, double amount)```
+     int example (int yPos, double amount)
+     
+     ```
 
-6. Add comments on top of code that might not be obvious to others
 
-
-Please avoid magic numbers
 
