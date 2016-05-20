@@ -1,6 +1,6 @@
 # CentralPark
 An Overview of New York's central park produced with OpenGL. This is a Final Project for Concordia's COMP 371 course.
-
+![Alt text](http://media1.popsugar-assets.com/files/2014/06/27/938/n/1922441/be0bad0cf5fdca7f_central-parksKfrAc.xxxlarge_2x/i/Central-Park.jpg)
 ###Coding Conventions:
 
 1. **ClassName** - Upper case for First letter
