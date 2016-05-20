@@ -1,34 +1,34 @@
-// CentralPark.cpp : Defines the entry point for the console application.
-//
-#pragma comment(linker, "/SUBSYSTEM:windows /ENTRY:mainCRTStartup")
+// Other headers
 #include "stdafx.h"
+
 #include <iostream>
 #include <Windows.h>
+
 // GLEW
 #define GLEW_STATIC
 #include <GL/glew.h>
 
 // GLFW
 #include <GLFW/glfw3.h>
-#include <glm\glm.hpp>
+#include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include "Shader.h"
+
 
 // Function prototypes
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 
 // Window dimensions
-const GLuint WIDTH = 1600, HEIGHT = 1200;
+const GLuint WIDTH = 800, HEIGHT = 600;
 
 // The MAIN function, from here we start the application and run the game loop
 int main()
 {
-	// hide console
-	FreeConsole();
+	std::cout << "Starting GLFW context, OpenGL 3.3" << std::endl;
 	// Init GLFW
 	glfwInit();
 	// Set all the required options for GLFW
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
