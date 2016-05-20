@@ -3,9 +3,10 @@ An Overview of New York's central park produced with OpenGL. This is a Final Pro
 
 Coding Conventions:
 
-ClassName - Upper case for First letter
+1. ClassName - Upper case for First letter
+ 
 class MyClass{};
-variableName - Lower Case for First letter
+3. variableName - Lower Case for First letter
 int myTimer;
 
 // - for single line comment
