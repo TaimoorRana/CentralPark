@@ -13,14 +13,15 @@ Coding Conventions:
 
 
 5. Add comments on top of all methods - Describe what the method does, Explain the paramenter
- * Example: `
-    /**
-      *This method take the mouse Y position of the mouse and mulitiplies by the amount specified
-      *yPos : mouse Y position
-      *amount : number to multiply by
-      *return : the y positon of the next cube
-      **/
-     int example (int yPos, double amount)`
+ * Example:
+     ```
+     /**
+     *This method take the mouse Y position of the mouse and mulitiplies by the amount specified
+     *yPos : mouse Y position
+     *amount : number to multiply by
+     *return : the y positon of the next cube
+     **/
+     int example (int yPos, double amount)```
 
 6. Add comments on top of code that might not be obvious to others
 
