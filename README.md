@@ -1,22 +1,22 @@
 # CentralPark
 An Overview of New York's central park produced with OpenGL. This is a Final Project for Concordia's COMP 371 course.
 
-Coding Conventions:
+###Coding Conventions:
 
-1. ClassName - Upper case for First letter
-  * class MyClass{};
-2. variableName - Lower Case for First letter
-  * int myTimer;
+1. **ClassName** - Upper case for First letter
+  * Example: class MyClass{};
+2. **variableName** - Lower Case for First letter
+  * Example: int myTimer;
 
-3. // - for single line comment
+3. //    - for single line comment
 4. /* */ - for multi line comment
 
 5. Add comments on top of code that might not be obvious to others
 
 
-6. Please avoid magic numbers
+6. **Please avoid magic numbers**
  
-7. Add comments on top of all methods - Describe what the method does, Explain the paramenter
+7. Add comments on top of **all methods** - Describe what the method does, Explain the paramenter
  * Example:
      ```
      /**
