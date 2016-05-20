@@ -20,10 +20,10 @@ An Overview of New York's central park produced with OpenGL. This is a Final Pro
  * Example:
      ```
      /**
-     *This method take the mouse Y position of the mouse and mulitiplies by the amount specified
-     *yPos : mouse Y position
-     *amount : number to multiply by
-     *return : the y positon of the next cube
+     * This method take the mouse Y position of the mouse and mulitiplies by the amount specified
+     * yPos : mouse Y position
+     * amount : number to multiply by
+     * return : the y positon of the next cube
      **/
      int example (int yPos, double amount)
      
