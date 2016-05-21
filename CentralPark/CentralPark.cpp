@@ -15,7 +15,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include "Shader.h"
 
-//test
+//test2
 // Function prototypes
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 
