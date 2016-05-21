@@ -2,10 +2,10 @@
 #include "stdafx.h"
 
 #include <iostream>
-#include <Windows.h>
+//#include <Windows.h>
 
 // GLEW
-#define GLEW_STATIC
+//#define GLEW_STATIC
 #include <GL/glew.h>
 
 // GLFW
