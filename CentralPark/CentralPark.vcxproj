@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{C119BAA7-8A36-40F6-8509-6DF35C3B743F}</ProjectGuid>
+    <ProjectGuid>{49082683-4FC7-4380-AAE9-9FDF09F5861F}</ProjectGuid>
     <RootNamespace>CentralPark</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
