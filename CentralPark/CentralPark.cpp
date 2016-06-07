@@ -27,6 +27,7 @@ const GLuint WIDTH = 1600, HEIGHT = 1200;
 Shader *groundShader;
 //ground
 GLuint groundVAO,groundVBO;
+GLuint textureGround;
 
 //camera
 glm::vec3 cameraPos(0,0,-3), cameraFront(0,0,1), cameraUp(0,1,0);
@@ -84,7 +85,7 @@ int main()
 		glClearColor(0.0f, 0.3f, 0.7f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 		groundShader->use();
-
+		
 		glm::mat4 view;
 		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
@@ -97,7 +98,7 @@ int main()
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
-
+		glBindTexture(GL_TEXTURE_2D, textureGround);
 		glBindVertexArray(groundVAO);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
@@ -119,6 +120,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 }
 
 void createGround() {
+	createTexture(textureGround, "Images/ground.jpg");
 	GLfloat y = -0.5f, x = 50.0f, z = x;
 
 	GLfloat verticesGround[] = {
@@ -150,8 +152,8 @@ void createGround() {
 	// define size of data
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)0);
-	//glEnableVertexAttribArray(2);
-	//glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)(3 * sizeof(GLfloat)));
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)(3 * sizeof(GLfloat)));
 	//glEnableVertexAttribArray(3);
 	//glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)(5 * sizeof(GLfloat)));
 
