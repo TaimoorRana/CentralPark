@@ -20,6 +20,7 @@
 // Function prototypes
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void createGround();
+void createBuilding();
 void createTexture(GLuint &texture, char* imageLocation);
 void do_movement();
 
@@ -27,11 +28,13 @@ void do_movement();
 const GLuint WIDTH = 1600, HEIGHT = 1200;
 Shader *groundShader;
 //ground
-GLuint groundVAO,groundVBO;
+GLuint groundVAO, groundVBO;
 GLuint textureGround;
-
+//buildings
+GLuint buildingVAO, buildingVBO;
+GLuint textureBuilding;
 //camera
-glm::vec3 cameraPos(0.0f,0.0f,-3.0f), cameraFront(0.0f,0.0f,1.0f), cameraUp(0.0f,1.0f,0.0f);
+glm::vec3 cameraPos(0.0f, 0.0f, -3.0f), cameraFront(0.0f, 0.0f, 1.0f), cameraUp(0.0f, 1.0f, 0.0f);
 bool keys[1024];
 
 
@@ -68,7 +71,7 @@ int main()
 		return -1;
 	}
 
-	// Define the viewport dimensions
+	// Define the viewport dimensionsd
 	int width, height;
 	glfwGetFramebufferSize(window, &width, &height);
 	glViewport(0, 0, width, height);
@@ -78,6 +81,8 @@ int main()
 	// initialize shaders
 	groundShader = new Shader("TextFiles/vertex.shader", "TextFiles/fragment.shader");
 	createGround();
+	createBuilding();
+	glEnable(GL_DEPTH_TEST);
 	while (!glfwWindowShouldClose(window))
 	{
 		// Check if any events have been activiated (key pressed, mouse moved etc.) and call corresponding response functions
@@ -86,14 +91,14 @@ int main()
 		// Render
 		// Clear the colorbuffer
 		glClearColor(0.0f, 0.3f, 0.7f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		groundShader->use();
-		
+
 		glm::mat4 view;
 		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
 		glm::mat4 projection, model(1.0f);
-		projection = glm::perspective(glm::radians(45.0f), (GLfloat)WIDTH / (GLfloat)HEIGHT, 0.1f, 100.0f);
+		projection = glm::perspective(glm::radians(45.0f), (GLfloat)WIDTH / (GLfloat)HEIGHT, 1.0f, 100.0f);
 
 		GLint modelLoc = glGetUniformLocation(groundShader->program, "model");
 		GLint viewLoc = glGetUniformLocation(groundShader->program, "view");
@@ -104,6 +109,11 @@ int main()
 		glBindTexture(GL_TEXTURE_2D, textureGround);
 		glBindVertexArray(groundVAO);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		glBindVertexArray(0);
+		glBindTexture(GL_TEXTURE_2D, 0);
+		glBindTexture(GL_TEXTURE_2D, textureBuilding);
+		glBindVertexArray(buildingVAO);
+		glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
 		// Swap the screen buffers
 		glfwSwapBuffers(window);
@@ -148,12 +158,12 @@ void createGround() {
 
 	glGenVertexArrays(1, &groundVAO);
 	glGenBuffers(1, &groundVBO);
-	
+
 	GLuint EBO;
 	glGenBuffers(1, &EBO);
 	glBindVertexArray(groundVAO);
 	glBindBuffer(GL_ARRAY_BUFFER, groundVBO);
-	
+
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	// transfer data
 	glBufferData(GL_ARRAY_BUFFER, sizeof(verticesGround), verticesGround, GL_STATIC_DRAW);
@@ -170,6 +180,92 @@ void createGround() {
 
 	// unfocus
 	glBindVertexArray(0);
+}
+
+void createBuilding()
+{
+	createTexture(textureBuilding, "Images/building1.jpg");
+	GLfloat y1 = -0.5f, y2 = 3.0f, x = 1.0f, z = x;
+
+	GLfloat verticesBuilding[] = {
+		//floor		   texture     normals 
+		-x, y1, -z,		1.0f,0.0f,  0.0f,-1.0f,0.0f,
+		x, y1, -z,		0.0f,0.0f,  0.0f,-1.0f,0.0f,
+		-x, y1, z,		1.0f,1.0f,  0.0f,-1.0f,0.0f,
+		x,  y1, z,		0.0f,1.0f,  0.0f,-1.0f,0.0f,
+		//ceiling		texture		normals
+		-x, y2, -z,		1.0f,0.0f,  0.0f,1.0f,0.0f,
+		x, y2, -z,		0.0f,0.0f,  0.0f,1.0f,0.0f,
+		-x, y2, z,		1.0f,1.0f,  0.0f,1.0f,0.0f,
+		x,  y2, z,		0.0f,1.0f,  0.0f,1.0f,0.0f,
+		//right-wall	texture		normals
+		x, y2, -z,		1.0f,0.0f,  1.0f,0.0f,0.0f,
+		x, y2, z,		0.0f,0.0f,  1.0f,0.0f,0.0f,
+		x, y1, -z,		1.0f,1.0f,  1.0f,0.0f,0.0f,
+		x,  y1, z,		0.0f,1.0f,  1.0f,0.0f,0.0f,
+		//left-wall		texture		normals
+		-x, y2, z,		1.0f,0.0f,  -1.0f,0.0f,0.0f,
+		-x, y2, -z,		0.0f,0.0f,  -1.0f,0.0f,0.0f,
+		-x, y1, z,		1.0f,1.0f,  -1.0f,0.0f,0.0f,
+		-x, y1, -z,		0.0f,1.0f,  -1.0f,0.0f,0.0f,
+		//back			texture		normals
+		-x, y2, -z,		1.0f,0.0f, 0.0f,0.0f,-1.0f,
+		x, y2, -z,		0.0f,0.0f, 0.0f,0.0f,-1.0f,
+		-x, y1, -z,		1.0f,1.0f, 0.0f,0.0f,-1.0f,
+		x, y1, -z,		0.0f,1.0f, 0.0f,0.0f,-1.0f,
+		                
+		//front			texture		normals
+		-x, y2, z,		1.0f,0.0f,  0.0f,0.0f,1.0f,
+		x, y2, z,		0.0f,0.0f,  0.0f,0.0f,1.0f,
+		-x, y1, z,		1.0f,1.0f,  0.0f,0.0f,1.0f,
+		x, y1, z,		0.0f,1.0f,  0.0f,0.0f,1.0f
+	};
+
+	GLuint indicesB[] = {
+		0,1,2,
+		2,3,1,
+
+		4,5,6,
+		6,7,5,
+
+		8,9,10,
+		10,11,9,
+
+		12,13,14,
+		14,15,13,
+
+		18,16,17,
+		18,19,17,
+
+		20,21,22,
+		22,23,21
+	};
+
+	glGenVertexArrays(1, &buildingVAO);
+	glGenBuffers(1, &buildingVBO);
+
+	GLuint EBO;
+	glGenBuffers(1, &EBO);
+	glBindVertexArray(buildingVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, buildingVBO);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	// transfer data
+	glBufferData(GL_ARRAY_BUFFER, sizeof(verticesBuilding), verticesBuilding, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indicesB), indicesB, GL_STATIC_DRAW);
+
+	// define size of data
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)(3 * sizeof(GLfloat)));
+	//glEnableVertexAttribArray(3);
+	//glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)(5 * sizeof(GLfloat)));
+
+
+	// unfocus
+	glBindVertexArray(0);
+
 }
 
 void createTexture(GLuint &texture, char* imageLocation)
@@ -200,7 +296,7 @@ void do_movement()
 	if (keys[GLFW_KEY_S])
 		cameraPos -= cameraFront * cameraSpeed;
 	if (keys[GLFW_KEY_A])
-		cameraPos -= cameraSpeed * glm::normalize(glm::cross(cameraFront, cameraUp)) ;
+		cameraPos -= cameraSpeed * glm::normalize(glm::cross(cameraFront, cameraUp));
 	if (keys[GLFW_KEY_D])
 		cameraPos += cameraSpeed * glm::normalize(glm::cross(cameraFront, cameraUp));
 }
