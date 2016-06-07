@@ -16,11 +16,12 @@
 #include "Shader.h"
 #include <SOIL\SOIL.h>
 
-//test2
+
 // Function prototypes
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
 void createGround();
 void createTexture(GLuint &texture, char* imageLocation);
+void do_movement();
 
 // Window dimensions
 const GLuint WIDTH = 1600, HEIGHT = 1200;
@@ -30,7 +31,9 @@ GLuint groundVAO,groundVBO;
 GLuint textureGround;
 
 //camera
-glm::vec3 cameraPos(0,0,-3), cameraFront(0,0,1), cameraUp(0,1,0);
+glm::vec3 cameraPos(0.0f,0.0f,-3.0f), cameraFront(0.0f,0.0f,1.0f), cameraUp(0.0f,1.0f,0.0f);
+bool keys[1024];
+
 
 // The MAIN function, from here we start the application and run the game loop
 int main()
@@ -79,7 +82,7 @@ int main()
 	{
 		// Check if any events have been activiated (key pressed, mouse moved etc.) and call corresponding response functions
 		glfwPollEvents();
-
+		do_movement();
 		// Render
 		// Clear the colorbuffer
 		glClearColor(0.0f, 0.3f, 0.7f, 1.0f);
@@ -117,6 +120,13 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	std::cout << key << std::endl;
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GL_TRUE);
+
+	if (action == GLFW_PRESS) {
+		keys[key] = true;
+	}
+	if (action == GLFW_RELEASE) {
+		keys[key] = false;
+	}
 }
 
 void createGround() {
@@ -179,4 +189,18 @@ void createTexture(GLuint &texture, char* imageLocation)
 
 	SOIL_free_image_data(image);
 	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void do_movement()
+{
+	// Camera controls
+	GLfloat cameraSpeed = 0.01f;
+	if (keys[GLFW_KEY_W])
+		cameraPos += cameraFront * cameraSpeed;
+	if (keys[GLFW_KEY_S])
+		cameraPos -= cameraFront * cameraSpeed;
+	if (keys[GLFW_KEY_A])
+		cameraPos -= cameraSpeed * glm::normalize(glm::cross(cameraFront, cameraUp)) ;
+	if (keys[GLFW_KEY_D])
+		cameraPos += cameraSpeed * glm::normalize(glm::cross(cameraFront, cameraUp));
 }
