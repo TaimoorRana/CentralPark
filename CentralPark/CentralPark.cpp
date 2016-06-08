@@ -1,6 +1,7 @@
 // Other headers
 #include "stdafx.h"
 
+#include <Windows.h>
 #include <iostream>
 //#include <Windows.h>
 
@@ -15,6 +16,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include "Shader.h"
 #include <SOIL\SOIL.h>
+#include <vector>
 
 
 // Function prototypes
@@ -23,6 +25,7 @@ void createGround();
 void createBuilding();
 void createTexture(GLuint &texture, char* imageLocation);
 void do_movement();
+void generateBuildings();
 
 // Window dimensions
 const GLuint WIDTH = 1600, HEIGHT = 1200;
@@ -30,9 +33,12 @@ Shader *groundShader;
 //ground
 GLuint groundVAO, groundVBO;
 GLuint textureGround;
+GLfloat groundWidth = 100.0f;
 //buildings
 GLuint buildingVAO, buildingVBO;
 GLuint textureBuilding;
+int totalBuildings = 1000;
+std::vector<glm::mat4> buildingModels;
 //camera
 glm::vec3 cameraPos(0.0f, 0.0f, -3.0f), cameraFront(0.0f, 0.0f, 1.0f), cameraUp(0.0f, 1.0f, 0.0f);
 bool keys[1024];
@@ -88,11 +94,13 @@ int main()
 		// Check if any events have been activiated (key pressed, mouse moved etc.) and call corresponding response functions
 		glfwPollEvents();
 		do_movement();
+		//Sleep(250);
+		generateBuildings();
 		// Render
 		// Clear the colorbuffer
 		glClearColor(0.0f, 0.3f, 0.7f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		groundShader->use();
+		groundShader->use(); 
 
 		glm::mat4 view;
 		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
@@ -113,7 +121,10 @@ int main()
 		glBindTexture(GL_TEXTURE_2D, 0);
 		glBindTexture(GL_TEXTURE_2D, textureBuilding);
 		glBindVertexArray(buildingVAO);
-		glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+		for (int i = 0; i < buildingModels.size(); i++) {
+			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(buildingModels[i]));
+			glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
+		}
 		glBindVertexArray(0);
 		// Swap the screen buffers
 		glfwSwapBuffers(window);
@@ -141,14 +152,14 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 void createGround() {
 	createTexture(textureGround, "Images/ground.jpg");
-	GLfloat y = -0.5f, x = 50.0f, z = x;
+	GLfloat y = -0.5f, z = groundWidth;
 
 	GLfloat verticesGround[] = {
 		// triangle 1   texture     normals 
-		-x, y, -z,		1.0f,0.0f,  0.0f,1.0f,0.0f,
-		x, y, -z,		1.0f,1.0f,  0.0f,1.0f,0.0f,
-		-x, y, z,		0.0f,1.0f,  0.0f,1.0f,0.0f,
-		x,  y, z,		0.0f,0.0f,  0.0f,1.0f,0.0f
+		-groundWidth, y, -z,	1.0f,0.0f,  0.0f,1.0f,0.0f,
+		groundWidth, y, -z,		1.0f,1.0f,  0.0f,1.0f,0.0f,
+		-groundWidth, y, z,		0.0f,1.0f,  0.0f,1.0f,0.0f,
+		groundWidth,  y, z,		0.0f,0.0f,  0.0f,1.0f,0.0f
 	};
 
 	GLuint indices[] = {
@@ -299,4 +310,25 @@ void do_movement()
 		cameraPos -= cameraSpeed * glm::normalize(glm::cross(cameraFront, cameraUp));
 	if (keys[GLFW_KEY_D])
 		cameraPos += cameraSpeed * glm::normalize(glm::cross(cameraFront, cameraUp));
+}
+
+void generateBuildings()
+{
+	// 
+	if (buildingModels.size() >= totalBuildings)
+		return;
+	int x = (std::rand() % 100) , z = (std::rand() % 100);
+	bool xSign = (std::rand() % 2) == 0;
+	bool ySign = (std::rand() % 2) == 0;
+	if (x < groundWidth && x > -groundWidth && z < groundWidth && z > -groundWidth) {
+		if (!xSign)
+			x *= -1;
+		if (!ySign)
+			z *= -1;
+		
+		glm::mat4 model;
+		model = glm::translate(model, glm::vec3(x, 0.0f, z));
+
+		buildingModels.push_back(model);
+	}
 }
