@@ -31,6 +31,7 @@ void generateBuildings();
 void createAllBuildingTextures();
 void createBuildingModelMatrices();
 GLuint loadCubemap(vector<const GLchar*> faces);
+void generateSkybox();
 
 // Window dimensions
 const GLuint WIDTH = 1600, HEIGHT = 1200;
@@ -42,7 +43,7 @@ GLfloat groundWidth = 1000.0f;
 //buildings
 GLuint buildingVAO, buildingVBO, instanceVBO;
 std::vector<GLuint> textureBuilding;
-int totalBuildings = 10000;
+int totalBuildings = 5000;
 std::vector<glm::vec3> buldingTranslations;
 std::vector<char*> buildingImagesLocations;
 std::vector<glm::mat4> buildingModelMatrices; // used for scaling buildings
@@ -52,11 +53,14 @@ GLfloat highestScaleValue = 10.0f; // used for scaling buildings
 GLfloat streetWidth = 5.0f;
 
 //camera
-glm::vec3 cameraPos(0.0f, 0.0f, -3.0f), cameraFront(0.0f, 0.2f, 1.0f), cameraUp(0.0f, 1.0f, 0.0f);
+glm::vec3 cameraPos(0.0f, 3.0f, 0.0f), cameraFront(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraUp(glm::normalize(glm::cross( glm::vec3(1,0,0), cameraFront)));
 bool keys[1024];
 
 //skybox
 Shader * skyboxShader;
+GLuint skyboxVAO;
+GLuint cubemapTexture;
 
 // The MAIN function, from here we start the application and run the game loop
 int main()
@@ -96,76 +100,12 @@ int main()
 	glfwGetFramebufferSize(window, &width, &height);
 	glViewport(0, 0, width, height);
 
-	//skybox
-	vector<const GLchar*> faces;
-	faces.push_back("Images/right.jpg");
-	faces.push_back("Images/left.jpg");
-	faces.push_back("Images/top.jpg");
-	faces.push_back("Images/bottom.jpg");
-	faces.push_back("Images/back.jpg");
-	faces.push_back("Images/front.jpg");
-	GLuint cubemapTexture = loadCubemap(faces);
-
-
-	GLfloat skyboxVertices[] = {
-		// Positions          
-		-1.0f,  1.0f, -1.0f,
-		-1.0f, -1.0f, -1.0f,
-		1.0f, -1.0f, -1.0f,
-		1.0f, -1.0f, -1.0f,
-		1.0f,  1.0f, -1.0f,
-		-1.0f,  1.0f, -1.0f,
-
-		-1.0f, -1.0f,  1.0f,
-		-1.0f, -1.0f, -1.0f,
-		-1.0f,  1.0f, -1.0f,
-		-1.0f,  1.0f, -1.0f,
-		-1.0f,  1.0f,  1.0f,
-		-1.0f, -1.0f,  1.0f,
-
-		1.0f, -1.0f, -1.0f,
-		1.0f, -1.0f,  1.0f,
-		1.0f,  1.0f,  1.0f,
-		1.0f,  1.0f,  1.0f,
-		1.0f,  1.0f, -1.0f,
-		1.0f, -1.0f, -1.0f,
-
-		-1.0f, -1.0f,  1.0f,
-		-1.0f,  1.0f,  1.0f,
-		1.0f,  1.0f,  1.0f,
-		1.0f,  1.0f,  1.0f,
-		1.0f, -1.0f,  1.0f,
-		-1.0f, -1.0f,  1.0f,
-
-		-1.0f,  1.0f, -1.0f,
-		1.0f,  1.0f, -1.0f,
-		1.0f,  1.0f,  1.0f,
-		1.0f,  1.0f,  1.0f,
-		-1.0f,  1.0f,  1.0f,
-		-1.0f,  1.0f, -1.0f,
-
-		-1.0f, -1.0f, -1.0f,
-		-1.0f, -1.0f,  1.0f,
-		1.0f, -1.0f, -1.0f,
-		1.0f, -1.0f, -1.0f,
-		-1.0f, -1.0f,  1.0f,
-		1.0f, -1.0f,  1.0f
-	};
-
-	// Setup skybox VAO
-	GLuint skyboxVAO, skyboxVBO;
-	glGenVertexArrays(1, &skyboxVAO);
-	glGenBuffers(1, &skyboxVBO);
-	glBindVertexArray(skyboxVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
-	glBindVertexArray(0);
+	
 
 	// initialize shaders
 	groundShader = new Shader("TextFiles/vertex.shader", "TextFiles/fragment.shader");
 	skyboxShader = new Shader("TextFiles/skyBoxVertex.shader", "TextFiles/skyBoxFragment.shader");
+	generateSkybox();
 	createAllBuildingTextures();
 	createBuildingModelMatrices();
 	createGround();
@@ -345,26 +285,26 @@ void createBuilding()
 		-x, y2, z,		textureSize,textureSize,     0.0f,1.0f,0.0f,
 		x,  y2, z,		0.0f,textureSize,            0.0f,1.0f,0.0f,
 		//right-wall	texture		normals
-		x, y2, -z,		textureSize,0.0f,  1.0f,0.0f,0.0f,
-		x, y2, z,		0.0f,0.0f,  1.0f,0.0f,0.0f,
-		x, y1, -z,		textureSize,textureSize,  1.0f,0.0f,0.0f,
-		x,  y1, z,		0.0f,textureSize,  1.0f,0.0f,0.0f,
+		x, y2, -z,		textureSize,0.0f,			 1.0f,0.0f,0.0f,
+		x, y2, z,		0.0f,0.0f,					 1.0f,0.0f,0.0f,
+		x, y1, -z,		textureSize,textureSize,     1.0f,0.0f,0.0f,
+		x,  y1, z,		0.0f,textureSize,            1.0f,0.0f,0.0f,
 		//left-wall		texture		normals
-		-x, y2, z,		textureSize,0.0f,  -1.0f,0.0f,0.0f,
-		-x, y2, -z,		0.0f,0.0f,  -1.0f,0.0f,0.0f,
-		-x, y1, z,		textureSize,textureSize,  -1.0f,0.0f,0.0f,
-		-x, y1, -z,		0.0f,textureSize,  -1.0f,0.0f,0.0f,
+		-x, y2, z,		textureSize,0.0f,            -1.0f,0.0f,0.0f,
+		-x, y2, -z,		0.0f,0.0f,					 -1.0f,0.0f,0.0f,
+		-x, y1, z,		textureSize,textureSize,     -1.0f,0.0f,0.0f,
+		-x, y1, -z,		0.0f,textureSize,			 -1.0f,0.0f,0.0f,
 		//back			texture		normals
-		-x, y2, -z,		textureSize,0.0f, 0.0f,0.0f,-1.0f,
-		x, y2, -z,		0.0f,0.0f, 0.0f,0.0f,-1.0f,
-		-x, y1, -z,		textureSize,textureSize, 0.0f,0.0f,-1.0f,
-		x, y1, -z,		0.0f,textureSize, 0.0f,0.0f,-1.0f,
+		-x, y2, -z,		textureSize,0.0f,			 0.0f,0.0f,-1.0f,
+		x, y2, -z,		0.0f,0.0f,					 0.0f,0.0f,-1.0f,
+		-x, y1, -z,		textureSize,textureSize,	 0.0f,0.0f,-1.0f,
+		x, y1, -z,		0.0f,textureSize,			 0.0f,0.0f,-1.0f,
 		                
 		//front			texture		normals
-		-x, y2, z,		textureSize,0.0f,  0.0f,0.0f,1.0f,
-		x, y2, z,		0.0f,0.0f,  0.0f,0.0f,1.0f,
-		-x, y1, z,		textureSize,textureSize,  0.0f,0.0f,1.0f,
-		x, y1, z,		0.0f,textureSize,  0.0f,0.0f,1.0f
+		-x, y2, z,		textureSize,0.0f,			 0.0f,0.0f,1.0f,
+		x, y2, z,		0.0f,0.0f,					 0.0f,0.0f,1.0f,
+		-x, y1, z,		textureSize,textureSize,     0.0f,0.0f,1.0f,
+		x, y1, z,		0.0f,textureSize,			 0.0f,0.0f,1.0f
 	};
 
 	GLuint indices[] = {
@@ -527,6 +467,9 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height) // for
 	glViewport(0, 0, width, height);
 }
 
+/*
+generate all buldings textures
+*/
 void createAllBuildingTextures() {
 	buildingImagesLocations.push_back("Images/building1.jpg");
 	buildingImagesLocations.push_back("Images/building2.jpg");
@@ -541,6 +484,9 @@ void createAllBuildingTextures() {
 	}
 }
 
+/*
+generate all buldings models
+*/
 void createBuildingModelMatrices() {
 	std::random_device rd; // obtain a random number from hardware
 	std::mt19937 eng(rd()); // seed the generator
@@ -554,6 +500,9 @@ void createBuildingModelMatrices() {
 	}
 }
 
+/*
+generates cubemap
+*/
 GLuint loadCubemap(vector<const GLchar*> faces)
 {
 	GLuint textureID;
@@ -580,4 +529,76 @@ GLuint loadCubemap(vector<const GLchar*> faces)
 	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 
 	return textureID;
+}
+
+/*
+generates skybox
+*/
+void generateSkybox() {
+	//skybox
+	vector<const GLchar*> faces;
+	faces.push_back("Images/right.jpg");
+	faces.push_back("Images/left.jpg");
+	faces.push_back("Images/top.jpg");
+	faces.push_back("Images/bottom.jpg");
+	faces.push_back("Images/back.jpg");
+	faces.push_back("Images/front.jpg");
+	cubemapTexture = loadCubemap(faces);
+
+
+	GLfloat skyboxVertices[] = {
+		// Positions          
+		-1.0f,  1.0f, -1.0f,
+		-1.0f, -1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f,
+		1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+
+		-1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+
+		1.0f, -1.0f, -1.0f,
+		1.0f, -1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f,
+
+		-1.0f, -1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+
+		-1.0f,  1.0f, -1.0f,
+		1.0f,  1.0f, -1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f, -1.0f,
+
+		-1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		1.0f, -1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		1.0f, -1.0f,  1.0f
+	};
+
+	// Setup skybox VAO
+	GLuint skyboxVBO;
+	glGenVertexArrays(1, &skyboxVAO);
+	glGenBuffers(1, &skyboxVBO);
+	glBindVertexArray(skyboxVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+	glBindVertexArray(0);
 }
