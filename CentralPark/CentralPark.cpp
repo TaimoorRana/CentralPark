@@ -29,6 +29,7 @@ void createTexture(GLuint &texture, char* imageLocation);
 void do_movement();
 void generateBuildings();
 void createAllBuildingTextures();
+void createBuildingModelMatrices();
 
 // Window dimensions
 const GLuint WIDTH = 1600, HEIGHT = 1200;
@@ -36,19 +37,21 @@ Shader *groundShader;
 //ground
 GLuint groundVAO, groundVBO;
 GLuint textureGround;
-GLfloat groundWidth = 100.0f;
+GLfloat groundWidth = 1000.0f;
 //buildings
 GLuint buildingVAO, buildingVBO, instanceVBO;
 std::vector<GLuint> textureBuilding;
-int totalBuildings = 1000;
+int totalBuildings = 10000;
 std::vector<glm::vec3> buldingTranslations;
 std::vector<char*> buildingImagesLocations;
+std::vector<glm::mat4> buildingModelMatrices;
+GLfloat highestScaleValue = 10.0f;
 
 // street 
 GLfloat streetWidth = 5.0f;
 
 //camera
-glm::vec3 cameraPos(0.0f, 0.0f, -3.0f), cameraFront(0.0f, 0.0f, 1.0f), cameraUp(0.0f, 1.0f, 0.0f);
+glm::vec3 cameraPos(0.0f, 0.0f, -3.0f), cameraFront(0.0f, 0.1f, 1.0f), cameraUp(0.0f, 1.0f, 0.0f);
 bool keys[1024];
 
 
@@ -95,6 +98,7 @@ int main()
 	// initialize shaders
 	groundShader = new Shader("TextFiles/vertex.shader", "TextFiles/fragment.shader");
 	createAllBuildingTextures();
+	createBuildingModelMatrices();
 	createGround();
 	createBuilding();
 
@@ -121,7 +125,7 @@ int main()
 		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
 		glm::mat4 projection, model(1.0f);
-		projection = glm::perspective(glm::radians(45.0f), (GLfloat)WIDTH / (GLfloat)HEIGHT, 1.0f, 100.0f);
+		projection = glm::perspective(glm::radians(45.0f), (GLfloat)WIDTH / (GLfloat)HEIGHT, 1.0f, 200.0f);
 
 		GLint modelLoc = glGetUniformLocation(groundShader->program, "model");
 		GLint viewLoc = glGetUniformLocation(groundShader->program, "view");
@@ -173,9 +177,9 @@ void createGround() {
 
 	GLfloat verticesGround[] = {
 		// triangle 1   texture     normals 
-		-groundWidth, y, -z,	1.0f,0.0f,  0.0f,1.0f,0.0f,
-		groundWidth, y, -z,		1.0f,1.0f,  0.0f,1.0f,0.0f,
-		-groundWidth, y, z,		0.0f,1.0f,  0.0f,1.0f,0.0f,
+		-groundWidth, y, -z,	100.0f,0.0f,  0.0f,1.0f,0.0f,
+		groundWidth, y, -z,		100.0f,100.0f,  0.0f,1.0f,0.0f,
+		-groundWidth, y, z,		0.0f,100.0f,  0.0f,1.0f,0.0f,
 		groundWidth,  y, z,		0.0f,0.0f,  0.0f,1.0f,0.0f
 	};
 
@@ -205,6 +209,26 @@ void createGround() {
 	//glEnableVertexAttribArray(3);
 	//glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)(5 * sizeof(GLfloat)));
 
+	glm::mat4 model(1.0f);
+	//model = glm::scale(model, glm::vec3(highestScaleValue));
+	GLuint modelMatrixVBO;
+	glGenBuffers(1, &modelMatrixVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, modelMatrixVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::mat4), &model, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(4);
+	glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(glm::vec4), (GLvoid*)0);
+	glEnableVertexAttribArray(5);
+	glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(glm::vec4), (GLvoid*) sizeof(glm::vec4));
+	glEnableVertexAttribArray(6);
+	glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(glm::vec4), (GLvoid*)(2 * sizeof(glm::vec4)));
+	glEnableVertexAttribArray(7);
+	glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(glm::vec4), (GLvoid*)(3 * sizeof(glm::vec4)));
+
+
+	glVertexAttribDivisor(4, 1);
+	glVertexAttribDivisor(5, 1);
+	glVertexAttribDivisor(6, 1);
+	glVertexAttribDivisor(7, 1);
 
 	// unfocus
 	glBindVertexArray(0);
@@ -311,6 +335,24 @@ void createBuilding()
 	glVertexAttribDivisor(3, 1); // tell opengl that this is instanced data
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+	GLuint modelMatrixVBO;
+	glGenBuffers(1, &modelMatrixVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, modelMatrixVBO);
+	glBufferData(GL_ARRAY_BUFFER, totalBuildings * sizeof(glm::mat4), &buildingModelMatrices[0], GL_STATIC_DRAW);
+	glEnableVertexAttribArray(4);
+	glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(glm::vec4), (GLvoid*)0);
+	glEnableVertexAttribArray(5);
+	glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(glm::vec4), (GLvoid*) sizeof(glm::vec4));
+	glEnableVertexAttribArray(6);
+	glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(glm::vec4), (GLvoid*)(2 * sizeof(glm::vec4)));
+	glEnableVertexAttribArray(7);
+	glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(glm::vec4), (GLvoid*)(3 * sizeof(glm::vec4)));
+
+
+	glVertexAttribDivisor(4, 1);
+	glVertexAttribDivisor(5, 1);
+	glVertexAttribDivisor(6, 1);
+	glVertexAttribDivisor(7, 1);
 	// unfocus
 	glBindVertexArray(0);
 
@@ -349,9 +391,9 @@ void do_movement()
 	// Camera controls
 	GLfloat cameraSpeed = 0.01f;
 	if (keys[GLFW_KEY_W])
-		cameraPos += cameraFront * cameraSpeed;
+		cameraPos += glm::vec3(cameraFront.x * cameraSpeed, 0, cameraFront.z * cameraSpeed);
 	if (keys[GLFW_KEY_S])
-		cameraPos -= cameraFront * cameraSpeed;
+		cameraPos -= glm::vec3(cameraFront.x * cameraSpeed, 0, cameraFront.z * cameraSpeed);
 	if (keys[GLFW_KEY_A])
 		cameraPos -= cameraSpeed * glm::normalize(glm::cross(cameraFront, cameraUp));
 	if (keys[GLFW_KEY_D])
@@ -402,5 +444,17 @@ void createAllBuildingTextures() {
 		glGenTextures(1, &texture);
 		textureBuilding.push_back(texture);
 		createTexture(textureBuilding[i], buildingImagesLocations[i]);
+	}
+}
+
+void createBuildingModelMatrices() {
+	std::random_device rd; // obtain a random number from hardware
+	std::mt19937 eng(rd()); // seed the generator
+	std::uniform_int_distribution<> distr(1, highestScaleValue); // define the range
+	for (int i = 0; i < totalBuildings; i++) {
+		glm::mat4 model;
+		model = glm::scale(model, glm::vec3(distr(eng)));
+		//std::cout
+		buildingModelMatrices.push_back(model);
 	}
 }
