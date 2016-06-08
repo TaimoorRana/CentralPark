@@ -41,6 +41,9 @@ GLuint textureBuilding;
 int totalBuildings = 1000;
 std::vector<glm::vec3> buldingTranslations;
 
+// street 
+GLfloat streetWidth = 5.0f;
+
 //camera
 glm::vec3 cameraPos(0.0f, 0.0f, -3.0f), cameraFront(0.0f, 0.0f, 1.0f), cameraUp(0.0f, 1.0f, 0.0f);
 bool keys[1024];
@@ -361,7 +364,7 @@ void generateBuildings()
 		bool ySign = (std::rand() % 2) == 0;
 
 		// make sure the values are on the ground surface
-		if (x < groundWidth && x > -groundWidth && z < groundWidth && z > -groundWidth) {
+		if (x < groundWidth && x >= streetWidth && z < groundWidth && z >= streetWidth  ) {
 			if (!xSign)
 				x *= -1;
 			if (!ySign)
