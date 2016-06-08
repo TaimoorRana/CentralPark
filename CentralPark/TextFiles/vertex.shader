@@ -18,5 +18,5 @@ void main()
     Normal = normal;
     FragPos = vec3(model * vec4(position + offset,1.0f));
     TexCoord = texCoord;
-    gl_Position = projection * view * model * vec4(position + offset, 1.0f);
+    gl_Position = projection * view * model* vec4((position + offset) , 1.0f);
 }

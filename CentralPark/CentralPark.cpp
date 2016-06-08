@@ -17,6 +17,7 @@
 #include "Shader.h"
 #include <SOIL\SOIL.h>
 #include <vector>
+#include <random>
 
 
 // Function prototypes
@@ -27,6 +28,7 @@ void createBuilding();
 void createTexture(GLuint &texture, char* imageLocation);
 void do_movement();
 void generateBuildings();
+void createAllBuildingTextures();
 
 // Window dimensions
 const GLuint WIDTH = 1600, HEIGHT = 1200;
@@ -37,9 +39,10 @@ GLuint textureGround;
 GLfloat groundWidth = 100.0f;
 //buildings
 GLuint buildingVAO, buildingVBO, instanceVBO;
-GLuint textureBuilding;
+std::vector<GLuint> textureBuilding;
 int totalBuildings = 1000;
 std::vector<glm::vec3> buldingTranslations;
+std::vector<char*> buildingImagesLocations;
 
 // street 
 GLfloat streetWidth = 5.0f;
@@ -91,8 +94,15 @@ int main()
 
 	// initialize shaders
 	groundShader = new Shader("TextFiles/vertex.shader", "TextFiles/fragment.shader");
+	createAllBuildingTextures();
 	createGround();
 	createBuilding();
+
+
+	std::random_device rd; // obtain a random number from hardware
+	std::mt19937 eng(rd()); // seed the generator
+	std::uniform_int_distribution<> distr(0, 4); // define the range
+
 	glEnable(GL_DEPTH_TEST);
 	while (!glfwWindowShouldClose(window))
 	{
@@ -127,7 +137,8 @@ int main()
 		glBindVertexArray(0);
 
 		// create buildings
-		glBindTexture(GL_TEXTURE_2D, textureBuilding);
+
+		glBindTexture(GL_TEXTURE_2D, textureBuilding[3]);
 		glBindVertexArray(buildingVAO);
 		glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0,totalBuildings);
 		
@@ -201,7 +212,7 @@ void createGround() {
 
 void createBuilding()
 {
-	createTexture(textureBuilding, "Images/building1.jpg");
+	
 	GLfloat y1 = -0.5f, y2 = 3.0f, x = 1.0f, z = x;
 
 	GLfloat verticesBuilding[] = {
@@ -378,4 +389,18 @@ void generateBuildings()
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) // for resizing window
 {
 	glViewport(0, 0, width, height);
+}
+
+void createAllBuildingTextures() {
+	buildingImagesLocations.push_back("Images/building1.jpg");
+	buildingImagesLocations.push_back("Images/building2.jpg");
+	buildingImagesLocations.push_back("Images/building3.jpg");
+	buildingImagesLocations.push_back("Images/building4.jpg");
+	buildingImagesLocations.push_back("Images/building5.jpg");
+	for (int i = 0; i < buildingImagesLocations.size(); i++) {
+		GLuint texture;
+		glGenTextures(1, &texture);
+		textureBuilding.push_back(texture);
+		createTexture(textureBuilding[i], buildingImagesLocations[i]);
+	}
 }
