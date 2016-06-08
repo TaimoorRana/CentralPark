@@ -30,6 +30,7 @@ void do_movement();
 void generateBuildings();
 void createAllBuildingTextures();
 void createBuildingModelMatrices();
+GLuint loadCubemap(vector<const GLchar*> faces);
 
 // Window dimensions
 const GLuint WIDTH = 1600, HEIGHT = 1200;
@@ -44,16 +45,18 @@ std::vector<GLuint> textureBuilding;
 int totalBuildings = 10000;
 std::vector<glm::vec3> buldingTranslations;
 std::vector<char*> buildingImagesLocations;
-std::vector<glm::mat4> buildingModelMatrices;
-GLfloat highestScaleValue = 10.0f;
+std::vector<glm::mat4> buildingModelMatrices; // used for scaling buildings
+GLfloat highestScaleValue = 10.0f; // used for scaling buildings
 
 // street 
 GLfloat streetWidth = 5.0f;
 
 //camera
-glm::vec3 cameraPos(0.0f, 0.0f, -3.0f), cameraFront(0.0f, 0.1f, 1.0f), cameraUp(0.0f, 1.0f, 0.0f);
+glm::vec3 cameraPos(0.0f, 0.0f, -3.0f), cameraFront(0.0f, 0.2f, 1.0f), cameraUp(0.0f, 1.0f, 0.0f);
 bool keys[1024];
 
+//skybox
+Shader * skyboxShader;
 
 // The MAIN function, from here we start the application and run the game loop
 int main()
@@ -93,10 +96,76 @@ int main()
 	glfwGetFramebufferSize(window, &width, &height);
 	glViewport(0, 0, width, height);
 
-	// Game loop
+	//skybox
+	vector<const GLchar*> faces;
+	faces.push_back("Images/right.jpg");
+	faces.push_back("Images/left.jpg");
+	faces.push_back("Images/top.jpg");
+	faces.push_back("Images/bottom.jpg");
+	faces.push_back("Images/back.jpg");
+	faces.push_back("Images/front.jpg");
+	GLuint cubemapTexture = loadCubemap(faces);
+
+
+	GLfloat skyboxVertices[] = {
+		// Positions          
+		-1.0f,  1.0f, -1.0f,
+		-1.0f, -1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f,
+		1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+
+		-1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f, -1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+
+		1.0f, -1.0f, -1.0f,
+		1.0f, -1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f,
+
+		-1.0f, -1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f, -1.0f,  1.0f,
+		-1.0f, -1.0f,  1.0f,
+
+		-1.0f,  1.0f, -1.0f,
+		1.0f,  1.0f, -1.0f,
+		1.0f,  1.0f,  1.0f,
+		1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f,  1.0f,
+		-1.0f,  1.0f, -1.0f,
+
+		-1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		1.0f, -1.0f, -1.0f,
+		1.0f, -1.0f, -1.0f,
+		-1.0f, -1.0f,  1.0f,
+		1.0f, -1.0f,  1.0f
+	};
+
+	// Setup skybox VAO
+	GLuint skyboxVAO, skyboxVBO;
+	glGenVertexArrays(1, &skyboxVAO);
+	glGenBuffers(1, &skyboxVBO);
+	glBindVertexArray(skyboxVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
+	glBindVertexArray(0);
 
 	// initialize shaders
 	groundShader = new Shader("TextFiles/vertex.shader", "TextFiles/fragment.shader");
+	skyboxShader = new Shader("TextFiles/skyBoxVertex.shader", "TextFiles/skyBoxFragment.shader");
 	createAllBuildingTextures();
 	createBuildingModelMatrices();
 	createGround();
@@ -119,12 +188,35 @@ int main()
 		// Clear the colorbuffer
 		glClearColor(0.0f, 0.3f, 0.7f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+
+		// Draw skybox first
+		glDepthMask(GL_FALSE);// Remember to turn depth writing off
+		skyboxShader->use();
+		glm::mat4 view = glm::mat4(glm::mat3(glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp)));	// Remove any translation component of the view matrix
+		glm::mat4 projection = glm::perspective(glm::radians(45.0f), (GLfloat)WIDTH / (GLfloat)HEIGHT, 1.0f, 100.0f);
+		glUniformMatrix4fv(glGetUniformLocation(skyboxShader->program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+		glUniformMatrix4fv(glGetUniformLocation(skyboxShader->program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+		// skybox cube
+		glBindVertexArray(skyboxVAO);
+		glActiveTexture(GL_TEXTURE0);
+		glUniform1i(glGetUniformLocation(skyboxShader->program, "skybox"), 0);
+		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+		glBindVertexArray(0);
+		glDepthMask(GL_TRUE);
+
+
+
+
+
+
 		groundShader->use(); 
 
-		glm::mat4 view;
+		//glm::mat4 view2;
 		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
-		glm::mat4 projection, model(1.0f);
+		glm::mat4  model(1.0f);
 		projection = glm::perspective(glm::radians(45.0f), (GLfloat)WIDTH / (GLfloat)HEIGHT, 1.0f, 200.0f);
 
 		GLint modelLoc = glGetUniformLocation(groundShader->program, "model");
@@ -238,39 +330,41 @@ void createBuilding()
 {
 	
 	GLfloat y1 = -0.5f, y2 = 3.0f, x = 1.0f, z = x;
+	GLfloat textureSize = 6.0f;
 
 	GLfloat verticesBuilding[] = {
-		//floor		   texture     normals 
-		-x, y1, -z,		1.0f,0.0f,  0.0f,-1.0f,0.0f,
-		x, y1, -z,		0.0f,0.0f,  0.0f,-1.0f,0.0f,
-		-x, y1, z,		1.0f,1.0f,  0.0f,-1.0f,0.0f,
-		x,  y1, z,		0.0f,1.0f,  0.0f,-1.0f,0.0f,
+		
+		//floor		   texture                       normals 
+		-x, y1, -z,		textureSize,0.0f,			 0.0f,-1.0f,0.0f,
+		x, y1, -z,		0.0f,0.0f,					 0.0f,-1.0f,0.0f,
+		-x, y1, z,		textureSize,textureSize,	 0.0f,-1.0f,0.0f,
+		x,  y1, z,		0.0f,1.0f,                   0.0f,-1.0f,0.0f,
 		//ceiling		texture		normals
-		-x, y2, -z,		1.0f,0.0f,  0.0f,1.0f,0.0f,
-		x, y2, -z,		0.0f,0.0f,  0.0f,1.0f,0.0f,
-		-x, y2, z,		1.0f,1.0f,  0.0f,1.0f,0.0f,
-		x,  y2, z,		0.0f,1.0f,  0.0f,1.0f,0.0f,
+		-x, y2, -z,		textureSize,0.0f,			 0.0f,1.0f,0.0f,
+		x, y2, -z,		0.0f,0.0f,					 0.0f,1.0f,0.0f,
+		-x, y2, z,		textureSize,textureSize,     0.0f,1.0f,0.0f,
+		x,  y2, z,		0.0f,textureSize,            0.0f,1.0f,0.0f,
 		//right-wall	texture		normals
-		x, y2, -z,		1.0f,0.0f,  1.0f,0.0f,0.0f,
+		x, y2, -z,		textureSize,0.0f,  1.0f,0.0f,0.0f,
 		x, y2, z,		0.0f,0.0f,  1.0f,0.0f,0.0f,
-		x, y1, -z,		1.0f,1.0f,  1.0f,0.0f,0.0f,
-		x,  y1, z,		0.0f,1.0f,  1.0f,0.0f,0.0f,
+		x, y1, -z,		textureSize,textureSize,  1.0f,0.0f,0.0f,
+		x,  y1, z,		0.0f,textureSize,  1.0f,0.0f,0.0f,
 		//left-wall		texture		normals
-		-x, y2, z,		1.0f,0.0f,  -1.0f,0.0f,0.0f,
+		-x, y2, z,		textureSize,0.0f,  -1.0f,0.0f,0.0f,
 		-x, y2, -z,		0.0f,0.0f,  -1.0f,0.0f,0.0f,
-		-x, y1, z,		1.0f,1.0f,  -1.0f,0.0f,0.0f,
-		-x, y1, -z,		0.0f,1.0f,  -1.0f,0.0f,0.0f,
+		-x, y1, z,		textureSize,textureSize,  -1.0f,0.0f,0.0f,
+		-x, y1, -z,		0.0f,textureSize,  -1.0f,0.0f,0.0f,
 		//back			texture		normals
-		-x, y2, -z,		1.0f,0.0f, 0.0f,0.0f,-1.0f,
+		-x, y2, -z,		textureSize,0.0f, 0.0f,0.0f,-1.0f,
 		x, y2, -z,		0.0f,0.0f, 0.0f,0.0f,-1.0f,
-		-x, y1, -z,		1.0f,1.0f, 0.0f,0.0f,-1.0f,
-		x, y1, -z,		0.0f,1.0f, 0.0f,0.0f,-1.0f,
+		-x, y1, -z,		textureSize,textureSize, 0.0f,0.0f,-1.0f,
+		x, y1, -z,		0.0f,textureSize, 0.0f,0.0f,-1.0f,
 		                
 		//front			texture		normals
-		-x, y2, z,		1.0f,0.0f,  0.0f,0.0f,1.0f,
+		-x, y2, z,		textureSize,0.0f,  0.0f,0.0f,1.0f,
 		x, y2, z,		0.0f,0.0f,  0.0f,0.0f,1.0f,
-		-x, y1, z,		1.0f,1.0f,  0.0f,0.0f,1.0f,
-		x, y1, z,		0.0f,1.0f,  0.0f,0.0f,1.0f
+		-x, y1, z,		textureSize,textureSize,  0.0f,0.0f,1.0f,
+		x, y1, z,		0.0f,textureSize,  0.0f,0.0f,1.0f
 	};
 
 	GLuint indices[] = {
@@ -453,8 +547,37 @@ void createBuildingModelMatrices() {
 	std::uniform_int_distribution<> distr(1, highestScaleValue); // define the range
 	for (int i = 0; i < totalBuildings; i++) {
 		glm::mat4 model;
-		model = glm::scale(model, glm::vec3(distr(eng)));
+		
+		model = glm::scale(model, glm::vec3(distr(eng), distr(eng), distr(eng)));
 		//std::cout
 		buildingModelMatrices.push_back(model);
 	}
+}
+
+GLuint loadCubemap(vector<const GLchar*> faces)
+{
+	GLuint textureID;
+	glGenTextures(1, &textureID);
+	glActiveTexture(GL_TEXTURE0);
+
+	int width, height;
+	unsigned char* image;
+
+	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+	for (GLuint i = 0; i < faces.size(); i++)
+	{
+		image = SOIL_load_image(faces[i], &width, &height, 0, SOIL_LOAD_RGB);
+		glTexImage2D(
+			GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0,
+			GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image
+		);
+	}
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+
+	return textureID;
 }
