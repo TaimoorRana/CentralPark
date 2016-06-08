@@ -21,6 +21,7 @@
 
 // Function prototypes
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
+void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void createGround();
 void createBuilding();
 void createTexture(GLuint &texture, char* imageLocation);
@@ -38,8 +39,7 @@ GLfloat groundWidth = 100.0f;
 GLuint buildingVAO, buildingVBO, instanceVBO;
 GLuint textureBuilding;
 int totalBuildings = 1000;
-std::vector<glm::mat4> buildingModels;
-std::vector<glm::vec3> translations;
+std::vector<glm::vec3> buldingTranslations;
 
 //camera
 glm::vec3 cameraPos(0.0f, 0.0f, -3.0f), cameraFront(0.0f, 0.0f, 1.0f), cameraUp(0.0f, 1.0f, 0.0f);
@@ -56,7 +56,7 @@ int main()
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+	
 
 	// Create a GLFWwindow object that we can use for GLFW's functions
 	GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "LearnOpenGL", nullptr, nullptr);
@@ -69,7 +69,7 @@ int main()
 	glfwMakeContextCurrent(window);
 	// Set the required callback functions
 	glfwSetKeyCallback(window, key_callback);
-
+	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback); // for window resize
 	// Set this to true so GLEW knows to use a modern approach to retrieving function pointers and extensions
 	glewExperimental = GL_TRUE;
 	// Initialize GLEW to setup the OpenGL Function pointers
@@ -117,10 +117,13 @@ int main()
 		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 		glBindTexture(GL_TEXTURE_2D, textureGround);
+
+		// create ground
 		glBindVertexArray(groundVAO);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
-		glBindTexture(GL_TEXTURE_2D, 0);
+
+		// create buildings
 		glBindTexture(GL_TEXTURE_2D, textureBuilding);
 		glBindVertexArray(buildingVAO);
 		glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0,totalBuildings);
@@ -232,7 +235,7 @@ void createBuilding()
 		x, y1, z,		0.0f,1.0f,  0.0f,0.0f,1.0f
 	};
 
-	GLuint indicesA[] = {
+	GLuint indices[] = {
 		0,1,2,
 		2,3,1,
 
@@ -252,12 +255,17 @@ void createBuilding()
 		22,23,21
 	};
 
+	// calculate building translations
 	generateBuildings();
+
+	// save the translations in a VBO
 	glGenBuffers(1, &instanceVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * translations.size(), &translations[0], GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * buldingTranslations.size(), &buldingTranslations[0], GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+
+	// define building VAO, VBO, EBO
 	glGenVertexArrays(1, &buildingVAO);
 	glGenBuffers(1, &buildingVBO);
 
@@ -269,25 +277,36 @@ void createBuilding()
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	// transfer data
 	glBufferData(GL_ARRAY_BUFFER, sizeof(verticesBuilding), verticesBuilding, GL_STATIC_DRAW);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indicesA), indicesA, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-	// define size of data
+	// define position data
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)0);
+	// define Texture position data
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)(3 * sizeof(GLfloat)));
-	//glEnableVertexAttribArray(3);
-	//glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)(5 * sizeof(GLfloat)));
+
+	// define normal position data
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)(5 * sizeof(GLfloat)));
+
+	// bind the translation buffer
 	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
 	glEnableVertexAttribArray(3);
 	glVertexAttribPointer(3,3,GL_FLOAT,GL_FALSE, 3 * sizeof(GLfloat),0);
-	glVertexAttribDivisor(3, 1);
+	glVertexAttribDivisor(3, 1); // tell opengl that this is instanced data
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	// unfocus
 	glBindVertexArray(0);
 
 }
+
+/*
+	creates textures
+	-texture:       address where to store the final texture
+	-imageLocation: image file location 
+*/
 
 void createTexture(GLuint &texture, char* imageLocation)
 {
@@ -308,6 +327,9 @@ void createTexture(GLuint &texture, char* imageLocation)
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+/*
+	changes camera positions
+*/
 void do_movement()
 {
 	// Camera controls
@@ -322,13 +344,23 @@ void do_movement()
 		cameraPos += cameraSpeed * glm::normalize(glm::cross(cameraFront, cameraUp));
 }
 
+/*
+generate bulding positions
+*/
 void generateBuildings()
 {
 
-	while (translations.size() < totalBuildings) {
+	// while all building positions have not been defined
+	while (buldingTranslations.size() < totalBuildings) {
+
+		// generate x, z values
 		int x = (std::rand() % 100), z = (std::rand() % 100);
+
+		// randomly assign negative values to x and z
 		bool xSign = (std::rand() % 2) == 0;
 		bool ySign = (std::rand() % 2) == 0;
+
+		// make sure the values are on the ground surface
 		if (x < groundWidth && x > -groundWidth && z < groundWidth && z > -groundWidth) {
 			if (!xSign)
 				x *= -1;
@@ -336,7 +368,11 @@ void generateBuildings()
 				z *= -1;
 
 			glm::vec3 translation(x, 0, z);
-			translations.push_back(translation);
+			buldingTranslations.push_back(translation);
 		}
 	}
+}
+void framebuffer_size_callback(GLFWwindow* window, int width, int height) // for resizing window
+{
+	glViewport(0, 0, width, height);
 }
