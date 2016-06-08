@@ -35,10 +35,12 @@ GLuint groundVAO, groundVBO;
 GLuint textureGround;
 GLfloat groundWidth = 100.0f;
 //buildings
-GLuint buildingVAO, buildingVBO;
+GLuint buildingVAO, buildingVBO, instanceVBO;
 GLuint textureBuilding;
 int totalBuildings = 1000;
 std::vector<glm::mat4> buildingModels;
+std::vector<glm::vec3> translations;
+
 //camera
 glm::vec3 cameraPos(0.0f, 0.0f, -3.0f), cameraFront(0.0f, 0.0f, 1.0f), cameraUp(0.0f, 1.0f, 0.0f);
 bool keys[1024];
@@ -121,10 +123,8 @@ int main()
 		glBindTexture(GL_TEXTURE_2D, 0);
 		glBindTexture(GL_TEXTURE_2D, textureBuilding);
 		glBindVertexArray(buildingVAO);
-		for (int i = 0; i < buildingModels.size(); i++) {
-			glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(buildingModels[i]));
-			glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
-		}
+		glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0,totalBuildings);
+		
 		glBindVertexArray(0);
 		// Swap the screen buffers
 		glfwSwapBuffers(window);
@@ -232,7 +232,7 @@ void createBuilding()
 		x, y1, z,		0.0f,1.0f,  0.0f,0.0f,1.0f
 	};
 
-	GLuint indicesB[] = {
+	GLuint indicesA[] = {
 		0,1,2,
 		2,3,1,
 
@@ -252,6 +252,12 @@ void createBuilding()
 		22,23,21
 	};
 
+	generateBuildings();
+	glGenBuffers(1, &instanceVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * translations.size(), &translations[0], GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
 	glGenVertexArrays(1, &buildingVAO);
 	glGenBuffers(1, &buildingVBO);
 
@@ -263,7 +269,7 @@ void createBuilding()
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	// transfer data
 	glBufferData(GL_ARRAY_BUFFER, sizeof(verticesBuilding), verticesBuilding, GL_STATIC_DRAW);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indicesB), indicesB, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indicesA), indicesA, GL_STATIC_DRAW);
 
 	// define size of data
 	glEnableVertexAttribArray(0);
@@ -272,7 +278,11 @@ void createBuilding()
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)(3 * sizeof(GLfloat)));
 	//glEnableVertexAttribArray(3);
 	//glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)(5 * sizeof(GLfloat)));
-
+	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+	glEnableVertexAttribArray(3);
+	glVertexAttribPointer(3,3,GL_FLOAT,GL_FALSE, 3 * sizeof(GLfloat),0);
+	glVertexAttribDivisor(3, 1);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	// unfocus
 	glBindVertexArray(0);
@@ -314,21 +324,19 @@ void do_movement()
 
 void generateBuildings()
 {
-	// 
-	if (buildingModels.size() >= totalBuildings)
-		return;
-	int x = (std::rand() % 100) , z = (std::rand() % 100);
-	bool xSign = (std::rand() % 2) == 0;
-	bool ySign = (std::rand() % 2) == 0;
-	if (x < groundWidth && x > -groundWidth && z < groundWidth && z > -groundWidth) {
-		if (!xSign)
-			x *= -1;
-		if (!ySign)
-			z *= -1;
-		
-		glm::mat4 model;
-		model = glm::translate(model, glm::vec3(x, 0.0f, z));
 
-		buildingModels.push_back(model);
+	while (translations.size() < totalBuildings) {
+		int x = (std::rand() % 100), z = (std::rand() % 100);
+		bool xSign = (std::rand() % 2) == 0;
+		bool ySign = (std::rand() % 2) == 0;
+		if (x < groundWidth && x > -groundWidth && z < groundWidth && z > -groundWidth) {
+			if (!xSign)
+				x *= -1;
+			if (!ySign)
+				z *= -1;
+
+			glm::vec3 translation(x, 0, z);
+			translations.push_back(translation);
+		}
 	}
 }
