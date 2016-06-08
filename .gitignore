@@ -4,7 +4,7 @@
 CentralPark.VC.db
 
 # User-specific files
-*.suo
+*.VC.db*.suo
 *.user
 *.userosscache
 *.sln.docstates
