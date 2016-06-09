@@ -43,14 +43,14 @@ GLfloat groundWidth = 1000.0f;
 //buildings
 GLuint buildingVAO, buildingVBO, instanceVBO;
 std::vector<GLuint> textureBuilding;
-int totalBuildings = 5000;
+int totalBuildings = 10000;
 std::vector<glm::vec3> buldingTranslations;
 std::vector<char*> buildingImagesLocations;
 std::vector<glm::mat4> buildingModelMatrices; // used for scaling buildings
 GLfloat highestScaleValue = 10.0f; // used for scaling buildings
 
 // street 
-GLfloat streetWidth = 5.0f;
+GLfloat streetWidth = 10.0f;
 
 //camera
 glm::vec3 cameraPos(0.0f, 3.0f, 0.0f), cameraFront(0.0f, 0.0f, -1.0f);
@@ -173,11 +173,13 @@ int main()
 		glBindVertexArray(0);
 
 		// create buildings
+		// need a better for loop 
+		for (int buildingForEachTexture = 2000; buildingForEachTexture <= totalBuildings; buildingForEachTexture += buildingForEachTexture) {
+			glBindTexture(GL_TEXTURE_2D, textureBuilding[buildingForEachTexture /2000 - 1]);
+			glBindVertexArray(buildingVAO);
+			glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0, buildingForEachTexture);
+		}
 
-		glBindTexture(GL_TEXTURE_2D, textureBuilding[3]);
-		glBindVertexArray(buildingVAO);
-		glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0,totalBuildings);
-		
 		glBindVertexArray(0);
 		// Swap the screen buffers
 		glfwSwapBuffers(window);
@@ -207,12 +209,13 @@ void createGround() {
 	createTexture(textureGround, "Images/ground.jpg");
 	GLfloat y = -0.5f, z = groundWidth;
 
+	GLfloat textureSize = 200;
 	GLfloat verticesGround[] = {
-		// triangle 1   texture     normals 
-		-groundWidth, y, -z,	100.0f,0.0f,  0.0f,1.0f,0.0f,
-		groundWidth, y, -z,		100.0f,100.0f,  0.0f,1.0f,0.0f,
-		-groundWidth, y, z,		0.0f,100.0f,  0.0f,1.0f,0.0f,
-		groundWidth,  y, z,		0.0f,0.0f,  0.0f,1.0f,0.0f
+		// triangle 1				texture						normals 
+		-groundWidth, y, -z,	0.0f, 0.0f,			0.0f,1.0f,0.0f,
+		groundWidth, y, -z,		textureSize,textureSize,    0.0f,1.0f,0.0f,
+		-groundWidth, y, z,				textureSize,0.0f,	0.0f,1.0f,0.0f,
+		groundWidth,  y, z,			0.0f,textureSize,			0.0f,1.0f,0.0f
 	};
 
 	GLuint indices[] = {
@@ -423,7 +426,7 @@ void createTexture(GLuint &texture, char* imageLocation)
 void do_movement()
 {
 	// Camera controls
-	GLfloat cameraSpeed = 0.01f;
+	GLfloat cameraSpeed = 0.05f;
 	if (keys[GLFW_KEY_W])
 		cameraPos += glm::vec3(cameraFront.x * cameraSpeed, 0, cameraFront.z * cameraSpeed);
 	if (keys[GLFW_KEY_S])
