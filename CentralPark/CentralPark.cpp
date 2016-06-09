@@ -32,6 +32,10 @@ void createAllBuildingTextures();
 void createBuildingModelMatrices();
 GLuint loadCubemap(vector<const GLchar*> faces);
 void generateSkybox();
+bool test1xaxis(int v4, int v3, int xf);
+bool test2zaxis(int v4, int v1, int zf);
+bool isInsideOccupiedAreaTest(int v4x, int v4z, int v3x, int v1z, int xf, int zf);
+
 
 // Window dimensions
 const GLuint WIDTH = 1600, HEIGHT = 1200;
@@ -602,3 +606,57 @@ void generateSkybox() {
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
 	glBindVertexArray(0);
 }
+
+// ----------------------------------------------------------------------------
+//   COLLISION DETECTION STUFF -  DURING BUILDING GENERATION                  +
+// ----------------------------------------------------------------------------
+// to do:
+// 1) detect park function
+// 2) test boundary function : use after testing if point is not in the area from test isInsideOccupiedAreaTest
+
+
+
+/*	test if the the "foreign" point (randomly generated location point) is 
+	in an area already occupied by taking 2 tests : x-axis and z-axis. 
+	function takes in vertice position and the foreign position denoted with 'f'
+*/
+bool isInsideOccupiedAreaTest(int v4x, int v4z, int v3x, int v1z, int xf, int zf) {
+	if (test1xaxis(v4x, v3x, xf) && test2zaxis(v4z, v1z, zf)) {
+		cout << "point is inside  or on a vertice" << endl;  // to be removed once full implementation of collision detection is completed
+		return true;
+	}
+	else {
+		cout << "point is outside" << endl; // to be removed once full implementation of collision detection is completed
+		return false;
+	}
+}
+
+/*	first test if the "foreign" point (randomly generated location point) is 
+	in an area already occupied by an existing building on the x-axis
+*/
+bool test1xaxis(int v4, int v3, int xf) {
+	if (v4 <= xf && v3 >= xf) {
+		cout << "point is between x4 and x3 or on a vertice" << endl;  // to be removed once full implementation of collision detection is completed
+		return true;
+	}
+	else return false;
+}
+
+/*	second test if the "foreign" point (randomly generated location point) is
+in an area already occupied by an existing building on the z-axis
+*/
+bool test2zaxis(int v4, int v1, int zf) {
+	if (v4 <= zf && v1 >= zf) { 
+		cout << "point is between z4 and z1  or on a vertice" << endl; // to be removed once full implementation of collision detection is completed
+		return true;
+	}
+	else return false;
+}
+
+// ----------------------------------------------------------------------------
+//   COLLISION DETECTION STUFF -  CAMERA MOVEMENT                             +
+// ----------------------------------------------------------------------------
+// to do:
+// 1) test up, down, left, right to get closer object, set into a variable as boundary limit for -+x and -+z -> need 4 variables
+//		this would avoid to constantly iterate throught the collection all the time
+//		may use insertion sorting algorithm or binary search
