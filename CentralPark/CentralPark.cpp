@@ -425,7 +425,7 @@ void generateBuildings()
 			buldingTranslations.push_back(translation);
 			printProgressReport(++buildingProgress);
 			if (buildingProgress == totalBuildings) {
-				cout << "\nBOOM! Done. I know I'm Powerful." << endl;
+				cout << "\nBOOM! Done. I know I'm powerful." << endl;
 			}
 		}
 	}
@@ -677,7 +677,7 @@ int getIntegerFromInput(string s) {
 }
 
 /* 
-	just the console trying to be a smart ass, analysizing the integer to generate the number of buildings
+	just the console trying to be a smart cookie, analysizing the integer to generate the number of buildings
 */
 bool intelliConsoleResponse(int numberOfBuilding) {
 	if (numberOfBuilding == -1234567890) {
@@ -809,8 +809,8 @@ void initialiseWindow() {
 	createAllBuildingTextures();
 	createBuildingModelMatrices();
 	createGround();
-	createBuilding();
-
+	createBuilding();//VAO VBO 1
+	// GENERATE HERE
 	std::random_device rd; // obtain a random number from hardware
 	std::mt19937 eng(rd()); // seed the generator
 	std::uniform_int_distribution<> distr(0, 4); // define the range
