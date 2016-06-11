@@ -29,7 +29,7 @@ void createGround();
 void createBuilding();
 void createTexture(GLuint &texture, char* imageLocation);
 void do_movement();
-void generateBuildings();
+void generateBuildingPositions();
 void createAllBuildingTextures();
 void createBuildingModelMatrices();
 GLuint loadCubemap(vector<const GLchar*> faces);
@@ -44,6 +44,7 @@ int getIntegerFromInput(string s);
 void initialiseWindow();
 void printProgressReport(int i);
 void mouse_position_callback(GLFWwindow* window, double xPos, double yPos);
+void createPark();
 
 // Window dimensions
 const GLuint WIDTH = 1600, HEIGHT = 1200;
@@ -54,6 +55,12 @@ int buildingProgress; // for starting flow
 GLuint groundVAO, groundVBO;
 GLuint textureGround;
 GLfloat groundWidth = 1000.0f;
+
+//park
+GLuint parkVAO, parkVBO;
+GLuint texturePark;
+GLfloat parkWidth = 50.0f;
+
 //buildings
 GLuint buildingVAO, buildingVBO, instanceVBO;
 std::vector<GLuint> textureBuilding;
@@ -63,8 +70,6 @@ std::vector<char*> buildingImagesLocations;
 std::vector<glm::mat4> buildingModelMatrices; // used for scaling buildings
 GLfloat highestScaleValue = 10.0f; // used for scaling buildings
 
-// street 
-GLfloat streetWidth = 10.0f;
 
 //camera
 glm::vec3 cameraPos(0.0f, 3.0f, 0.0f), cameraFront(0.0f, 0.0f, -1.0f);
@@ -89,6 +94,7 @@ int main()
 	initialiseWindow();
 
 	// GAME LOOP START HERE
+	glm::mat4 projection = glm::perspective(glm::radians(45.0f), (GLfloat)WIDTH / (GLfloat)HEIGHT, 1.0f, 400.0f);
 	while (!glfwWindowShouldClose(window))
 	{
 		// Check if any events have been activiated (key pressed, mouse moved etc.) and call corresponding response functions
@@ -106,7 +112,7 @@ int main()
 		glDepthMask(GL_FALSE);// Remember to turn depth writing off
 		skyboxShader->use();
 		glm::mat4 view = glm::mat4(glm::mat3(glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp)));	// Remove any translation component of the view matrix
-		glm::mat4 projection = glm::perspective(glm::radians(30.0f), (GLfloat)WIDTH / (GLfloat)HEIGHT, 1.0f, 100.0f);
+		
 		glUniformMatrix4fv(glGetUniformLocation(skyboxShader->program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(glGetUniformLocation(skyboxShader->program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 		// skybox cube
@@ -146,13 +152,21 @@ int main()
 
 		// create buildings
 		// need a better for loop 
+		glBindVertexArray(buildingVAO);
 		for (int buildingForEachTexture = 2000; buildingForEachTexture <= totalBuildings; buildingForEachTexture += buildingForEachTexture) {
 			glBindTexture(GL_TEXTURE_2D, textureBuilding[buildingForEachTexture /2000 - 1]);
-		glBindVertexArray(buildingVAO);
+		
 			glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0, buildingForEachTexture);
 		}
-		
 		glBindVertexArray(0);
+		glBindTexture(GL_TEXTURE_2D, texturePark);
+
+		// create ground
+		glBindVertexArray(parkVAO);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		glBindVertexArray(0);
+		
+		
 		// Swap the screen buffers
 		glfwSwapBuffers(window);
 	}
@@ -217,7 +231,70 @@ void createGround() {
 	//glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)(5 * sizeof(GLfloat)));
 
 	glm::mat4 model(1.0f);
-	//model = glm::scale(model, glm::vec3(highestScaleValue));
+	GLuint modelMatrixVBO;
+	glGenBuffers(1, &modelMatrixVBO);
+	glBindBuffer(GL_ARRAY_BUFFER, modelMatrixVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::mat4), &model, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(4);
+	glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(glm::vec4), (GLvoid*)0);
+	glEnableVertexAttribArray(5);
+	glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(glm::vec4), (GLvoid*) sizeof(glm::vec4));
+	glEnableVertexAttribArray(6);
+	glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(glm::vec4), (GLvoid*)(2 * sizeof(glm::vec4)));
+	glEnableVertexAttribArray(7);
+	glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(glm::vec4), (GLvoid*)(3 * sizeof(glm::vec4)));
+
+
+	glVertexAttribDivisor(4, 1);
+	glVertexAttribDivisor(5, 1);
+	glVertexAttribDivisor(6, 1);
+	glVertexAttribDivisor(7, 1);
+
+	// unfocus
+	glBindVertexArray(0);
+}
+
+void createPark() {
+	createTexture(texturePark, "Images/park.jpg");
+	GLfloat y = -0.5f, z = parkWidth;
+
+	GLfloat textureSize = 200;
+	GLfloat verticesPark[] = {
+		// triangle 1						texture						normals 
+		-parkWidth, y, -parkWidth,			0.0f, 0.0f,					0.0f,1.0f,0.0f,
+		parkWidth, y, -parkWidth,		    textureSize,0.0f,			0.0f,1.0f,0.0f,
+		-parkWidth, y, parkWidth,			0.0f,textureSize,			0.0f,1.0f,0.0f,
+		parkWidth,  y, parkWidth,			textureSize,textureSize,	0.0f,1.0f,0.0f
+	};
+
+	GLuint indices[] = {
+		0,1,2,
+		2,3,1
+	};
+
+	glGenVertexArrays(1, &parkVAO);
+	glGenBuffers(1, &parkVBO);
+
+	GLuint EBO;
+	glGenBuffers(1, &EBO);
+	glBindVertexArray(parkVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, parkVBO);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	// transfer data
+	glBufferData(GL_ARRAY_BUFFER, sizeof(verticesPark), verticesPark, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+	// define size of data
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)(3 * sizeof(GLfloat)));
+	//glEnableVertexAttribArray(3);
+	//glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)(5 * sizeof(GLfloat)));
+
+	glm::mat4 model(1.0f);
+	model = glm::translate(model, glm::vec3(0.0, 0.1, 0.0));
 	GLuint modelMatrixVBO;
 	glGenBuffers(1, &modelMatrixVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, modelMatrixVBO);
@@ -303,7 +380,7 @@ void createBuilding()
 	};
 
 	// calculate building translations
-	generateBuildings();
+	generateBuildingPositions();
 
 	// save the translations in a VBO
 	glGenBuffers(1, &instanceVBO);
@@ -435,21 +512,25 @@ void do_movement()
 /*
 generate bulding positions
 */
-void generateBuildings()
+void generateBuildingPositions()
 {
-
+	std::random_device rd; // dsobtain a random number from hardware
+	std::mt19937 eng(rd()); // seed the generator
+	std::uniform_int_distribution<> distr(0, groundWidth-1);
 	// while all building positions have not been defined
 	while (buldingTranslations.size() < totalBuildings) {
 
 		// generate x, z values
-		int x = (std::rand() % 100), z = (std::rand() % 100);
+		int x = distr(eng) %100, z = distr(eng) % 100;
 
-		// randomly assign negative values to x and z
-		bool xSign = (std::rand() % 2) == 0;
-		bool ySign = (std::rand() % 2) == 0;
+		
 
 		// make sure the values are on the ground surface
-		if (x < groundWidth && x >= streetWidth && z < groundWidth && z >= streetWidth  ) {
+		if ((x < groundWidth && (x > parkWidth ||( x < parkWidth && z > parkWidth))) && 
+			(z < groundWidth && ( z > parkWidth || ( z < parkWidth && x > parkWidth)))  ) {
+			// randomly assign negative values to x and z
+			bool xSign = (std::rand() % 2) == 0;
+			bool ySign = (std::rand() % 2) == 0;
 			if (!xSign)
 				x *= -1;
 			if (!ySign)
@@ -845,7 +926,8 @@ void initialiseWindow() {
 	createBuildingModelMatrices();
 	createGround();
 	createBuilding();//VAO VBO 1
-	generateBuildings();
+	createPark();
+	//generateBuildingPositions();
 	
 
 	glEnable(GL_DEPTH_TEST);
