@@ -173,6 +173,7 @@ void createGround() {
 	createTexture(textureGround, "Images/ground.jpg");
 	GLfloat y = -0.5f, z = groundWidth;
 
+	GLfloat textureSize = 200;
 	GLfloat verticesGround[] = {
 		// triangle 1   texture     normals 
 		-groundWidth, y, -z,	0.0f, 0.0f,			0.0f,1.0f,0.0f,
