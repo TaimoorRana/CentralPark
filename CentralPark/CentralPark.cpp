@@ -43,6 +43,7 @@ bool intelliConsoleResponse(int numberOfBuilding);
 int getIntegerFromInput(string s);
 void initialiseWindow();
 void printProgressReport(int i);
+void mouse_position_callback(GLFWwindow* window, double xPos, double yPos);
 
 // Window dimensions
 const GLuint WIDTH = 1600, HEIGHT = 1200;
@@ -68,12 +69,20 @@ GLfloat streetWidth = 10.0f;
 //camera
 glm::vec3 cameraPos(0.0f, 3.0f, 0.0f), cameraFront(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp(glm::normalize(glm::cross( glm::vec3(1,0,0), cameraFront)));
+GLfloat yaw = -90.0f;	// Yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right (due to how Eular angles work) so we initially rotate a bit to the left.
+GLfloat pitch = 0.0f;
+GLfloat lastX = WIDTH / 2.0;
+GLfloat lastY = HEIGHT / 2.0;
 bool keys[1024];
 
 //skybox
 Shader * skyboxShader;
 GLuint skyboxVAO;
 GLuint cubemapTexture;
+
+// Deltatime
+GLfloat deltaTime = 0.0f;	// Time between current frame and last frame
+GLfloat lastFrame = 0.0f;  	// Time of last frame
 
 int main()
 {
@@ -394,10 +403,33 @@ void do_movement()
 		cameraPos += glm::vec3(cameraFront.x * cameraSpeed, 0, cameraFront.z * cameraSpeed);
 	if (keys[GLFW_KEY_S] || keys[GLFW_KEY_DOWN])
 		cameraPos -= glm::vec3(cameraFront.x * cameraSpeed, 0, cameraFront.z * cameraSpeed);
-	if (keys[GLFW_KEY_A] || keys[GLFW_KEY_LEFT])
-		cameraPos -= cameraSpeed * glm::normalize(glm::cross(cameraFront, cameraUp));
-	if (keys[GLFW_KEY_D] || keys[GLFW_KEY_RIGHT])
-		cameraPos += cameraSpeed * glm::normalize(glm::cross(cameraFront, cameraUp));
+	if (keys[GLFW_KEY_A] || keys[GLFW_KEY_LEFT]) {
+
+		GLfloat xoffset = -1.0f;
+
+		GLfloat sensitivity = 0.05;	// Change this value to your liking
+		xoffset *= sensitivity;
+
+		yaw += xoffset;
+
+		glm::vec3 front;
+		front.x = cos(glm::radians(yaw));
+		front.z = sin(glm::radians(yaw));
+		cameraFront = glm::normalize(front);
+	}
+	if (keys[GLFW_KEY_D] || keys[GLFW_KEY_RIGHT]) {
+		GLfloat xoffset = 1.0f;
+
+		GLfloat sensitivity = 0.05;	// Change this value to your liking
+		xoffset *= sensitivity;
+
+		yaw += xoffset;
+
+		glm::vec3 front;
+		front.x = cos(glm::radians(yaw));
+		front.z = sin(glm::radians(yaw));
+		cameraFront = glm::normalize(front);
+	}
 }
 
 /*
@@ -786,6 +818,7 @@ void initialiseWindow() {
 	}
 	glfwMakeContextCurrent(window);
 	// Set the required callback functions
+	glfwSetCursorPosCallback(window, mouse_position_callback);
 	glfwSetKeyCallback(window, key_callback);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback); // for window resize
 																	   // Set this to true so GLEW knows to use a modern approach to retrieving function pointers and extensions
@@ -819,4 +852,42 @@ void initialiseWindow() {
 	std::uniform_int_distribution<> distr(0, 4); // define the range
 
 	glEnable(GL_DEPTH_TEST);
+}
+bool firstMouse = true;
+void mouse_position_callback(GLFWwindow * window, double xPos, double yPos)
+{
+	
+	/* Taken from learnopengl.com*/
+	if (firstMouse)
+	{
+		lastX = xPos;
+		lastY = yPos;
+		firstMouse = false;
+	}
+
+	GLfloat xoffset = xPos - lastX;
+	GLfloat yoffset = lastY - yPos; // Reversed since y-coordinates go from bottom to left
+	lastX = xPos;
+	lastY = yPos;
+
+	GLfloat sensitivity = 0.05;	// Change this value to your liking
+	xoffset *= sensitivity;
+	yoffset *= sensitivity;
+
+	yaw += xoffset;
+	pitch += yoffset;
+
+	// Make sure that when pitch is out of bounds, screen doesn't get flipped
+	if (pitch > 89.0f)
+		pitch = 89.0f;
+	if (pitch < -89.0f)
+		pitch = -89.0f;
+
+	glm::vec3 front;
+	front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+	front.y = sin(glm::radians(pitch));
+	front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+	cameraFront = glm::normalize(front);
+	/* Taken from learnopengl.com*/
+	
 }
