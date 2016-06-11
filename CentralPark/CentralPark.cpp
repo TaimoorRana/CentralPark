@@ -927,7 +927,6 @@ void initialiseWindow() {
 	createGround();
 	createBuilding();//VAO VBO 1
 	createPark();
-	//generateBuildingPositions();
 	
 
 	glEnable(GL_DEPTH_TEST);
