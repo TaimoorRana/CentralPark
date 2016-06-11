@@ -3,6 +3,7 @@
 
 #include <Windows.h>
 #include <iostream>
+#include <string>
 //#include <Windows.h>
 
 // GLEW
@@ -19,6 +20,7 @@
 #include <vector>
 #include <random>
 
+using namespace std;
 
 // Function prototypes
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
@@ -32,10 +34,21 @@ void createAllBuildingTextures();
 void createBuildingModelMatrices();
 GLuint loadCubemap(vector<const GLchar*> faces);
 void generateSkybox();
+bool test1xaxis(int v4, int v3, int xf);
+bool test2zaxis(int v4, int v1, int zf);
+bool isInsideOccupiedAreaTest(int v4x, int v4z, int v3x, int v1z, int xf, int zf);
+void getUserInput();
+void welcomeDisplay();
+bool intelliConsoleResponse(int numberOfBuilding);
+int getIntegerFromInput(string s);
+void initialiseWindow();
+void printProgressReport(int i);
 
 // Window dimensions
 const GLuint WIDTH = 1600, HEIGHT = 1200;
+GLFWwindow* window;
 Shader *groundShader;
+int buildingProgress; // for starting flow
 //ground
 GLuint groundVAO, groundVBO;
 GLuint textureGround;
@@ -43,7 +56,7 @@ GLfloat groundWidth = 1000.0f;
 //buildings
 GLuint buildingVAO, buildingVBO, instanceVBO;
 std::vector<GLuint> textureBuilding;
-int totalBuildings = 10000;
+int totalBuildings;
 std::vector<glm::vec3> buldingTranslations;
 std::vector<char*> buildingImagesLocations;
 std::vector<glm::mat4> buildingModelMatrices; // used for scaling buildings
@@ -62,61 +75,12 @@ Shader * skyboxShader;
 GLuint skyboxVAO;
 GLuint cubemapTexture;
 
-// The MAIN function, from here we start the application and run the game loop
 int main()
 {
-	std::cout << "Starting GLFW context, OpenGL 3.3" << std::endl;
-	// Init GLFW
-	glfwInit();
-	// Set all the required options for GLFW
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	
+	getUserInput();
+	initialiseWindow();
 
-	// Create a GLFWwindow object that we can use for GLFW's functions
-	GLFWwindow* window = glfwCreateWindow(WIDTH, HEIGHT, "LearnOpenGL", nullptr, nullptr);
-	if (window == nullptr)
-	{
-		std::cout << "Failed to create GLFW window" << std::endl;
-		glfwTerminate();
-		return -1;
-	}
-	glfwMakeContextCurrent(window);
-	// Set the required callback functions
-	glfwSetKeyCallback(window, key_callback);
-	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback); // for window resize
-	// Set this to true so GLEW knows to use a modern approach to retrieving function pointers and extensions
-	glewExperimental = GL_TRUE;
-	// Initialize GLEW to setup the OpenGL Function pointers
-	if (glewInit() != GLEW_OK)
-	{
-		std::cout << "Failed to initialize GLEW" << std::endl;
-		return -1;
-	}
-
-	// Define the viewport dimensionsd
-	int width, height;
-	glfwGetFramebufferSize(window, &width, &height);
-	glViewport(0, 0, width, height);
-
-	
-
-	// initialize shaders
-	groundShader = new Shader("TextFiles/vertex.shader", "TextFiles/fragment.shader");
-	skyboxShader = new Shader("TextFiles/skyBoxVertex.shader", "TextFiles/skyBoxFragment.shader");
-	generateSkybox();
-	createAllBuildingTextures();
-	createBuildingModelMatrices();
-	createGround();
-	createBuilding();
-
-
-	std::random_device rd; // obtain a random number from hardware
-	std::mt19937 eng(rd()); // seed the generator
-	std::uniform_int_distribution<> distr(0, 4); // define the range
-
-	glEnable(GL_DEPTH_TEST);
+	// GAME LOOP START HERE
 	while (!glfwWindowShouldClose(window))
 	{
 		// Check if any events have been activiated (key pressed, mouse moved etc.) and call corresponding response functions
@@ -176,10 +140,10 @@ int main()
 		// need a better for loop 
 		for (int buildingForEachTexture = 2000; buildingForEachTexture <= totalBuildings; buildingForEachTexture += buildingForEachTexture) {
 			glBindTexture(GL_TEXTURE_2D, textureBuilding[buildingForEachTexture /2000 - 1]);
-			glBindVertexArray(buildingVAO);
+		glBindVertexArray(buildingVAO);
 			glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0, buildingForEachTexture);
 		}
-
+		
 		glBindVertexArray(0);
 		// Swap the screen buffers
 		glfwSwapBuffers(window);
@@ -211,7 +175,7 @@ void createGround() {
 
 	GLfloat textureSize = 200;
 	GLfloat verticesGround[] = {
-		// triangle 1				texture						normals 
+		// triangle 1   texture     normals 
 		-groundWidth, y, -z,	0.0f, 0.0f,			0.0f,1.0f,0.0f,
 		groundWidth, y, -z,		textureSize,textureSize,    0.0f,1.0f,0.0f,
 		-groundWidth, y, z,				textureSize,0.0f,	0.0f,1.0f,0.0f,
@@ -462,9 +426,14 @@ void generateBuildings()
 
 			glm::vec3 translation(x, 0, z);
 			buldingTranslations.push_back(translation);
+			printProgressReport(++buildingProgress);
+			if (buildingProgress == totalBuildings) {
+				cout << "\nBOOM! Done. I know I'm powerful." << endl;
+			}
 		}
 	}
 }
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) // for resizing window
 {
 	glViewport(0, 0, width, height);
@@ -604,4 +573,250 @@ void generateSkybox() {
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
 	glBindVertexArray(0);
+}
+
+// ----------------------------------------------------------------------------
+//   COLLISION DETECTION STUFF -  DURING BUILDING GENERATION                  +
+// ----------------------------------------------------------------------------
+// to do:
+// 1) detect park function
+// 2) test boundary function : use after testing if point is not in the area from test isInsideOccupiedAreaTest
+
+
+
+/*	test if the the "foreign" point (randomly generated location point) is 
+	in an area already occupied by taking 2 tests : x-axis and z-axis. 
+	function takes in vertice position and the foreign position denoted with 'f'
+*/
+bool isInsideOccupiedAreaTest(int v4x, int v4z, int v3x, int v1z, int xf, int zf) {
+	if (test1xaxis(v4x, v3x, xf) && test2zaxis(v4z, v1z, zf)) {
+		cout << "point is inside  or on a vertice" << endl;  // to be removed once full implementation of collision detection is completed
+		return true;
+	}
+	else {
+		cout << "point is outside" << endl; // to be removed once full implementation of collision detection is completed
+		return false;
+	}
+}
+
+/*	first test if the "foreign" point (randomly generated location point) is 
+	in an area already occupied by an existing building on the x-axis
+*/
+bool test1xaxis(int v4, int v3, int xf) {
+	if (v4 <= xf && v3 >= xf) {
+		cout << "point is between x4 and x3 or on a vertice" << endl;  // to be removed once full implementation of collision detection is completed
+		return true;
+	}
+	else return false;
+}
+
+/*	second test if the "foreign" point (randomly generated location point) is
+in an area already occupied by an existing building on the z-axis
+*/
+bool test2zaxis(int v4, int v1, int zf) {
+	if (v4 <= zf && v1 >= zf) { 
+		cout << "point is between z4 and z1  or on a vertice" << endl; // to be removed once full implementation of collision detection is completed
+		return true;
+	}
+	else return false;
+}
+
+// ----------------------------------------------------------------------------
+//   COLLISION DETECTION STUFF -  CAMERA MOVEMENT                             +
+// ----------------------------------------------------------------------------
+// to do:
+// 1) test up, down, left, right to get closer object, set into a variable as boundary limit for -+x and -+z -> need 4 variables
+//		this would avoid to constantly iterate throught the collection all the time
+//		may use insertion sorting algorithm or binary search
+
+
+// ----------------------------------------------------------------------------
+//   STARTING SCREEN STUFF                                                    +
+// ----------------------------------------------------------------------------
+
+/*	
+	function that welcome the user and request an input from him/her
+	function handle all kind of input, or so I thought
+*/
+void getUserInput() {  
+	welcomeDisplay();
+	bool userContinueToInput = true;
+	string currentInput;
+	int numberOfBuildingToGenerate;
+	cout << "Hello!\nWelcome to our mini city buildings mass builder,\nJust enter a number, any big number (ok maybe not 1 billion).\n" << endl;
+	system("PAUSE");
+	while (userContinueToInput) {
+		system("CLS"); // clear console screen
+		welcomeDisplay();
+		cout << "Choose your number yet?" << endl;
+		cin >> currentInput;
+		numberOfBuildingToGenerate = getIntegerFromInput(currentInput);
+		userContinueToInput = intelliConsoleResponse(numberOfBuildingToGenerate);	
+		system("PAUSE");
+	}
+	totalBuildings = numberOfBuildingToGenerate;
+	system("CLS"); 
+	welcomeDisplay();
+	cout << "Let me call my children the threads:" << endl;
+}
+
+/*	
+	handle string and integer input to avoid crashing
+	iterate through the string variable and extract the integer, then convert into int data type
+	else if there's no integer return code -1234567890
+*/
+int getIntegerFromInput(string s) {
+	string intExtract;
+	for (unsigned int i = 0; i < s.size(); i++) {
+		if (isdigit(s[i]))
+		{
+			intExtract += s[i];
+		}
+	}
+	if (!intExtract.empty()) {
+		return stoi(intExtract);
+	}
+	else return -1234567890;
+}
+
+/* 
+	just the console trying to be a smart cookie, analysizing the integer to generate the number of buildings
+*/
+bool intelliConsoleResponse(int numberOfBuilding) {
+	if (numberOfBuilding == -1234567890) {
+		cout << "Letters, letters, only letters and no number! Don't try to foul me.\nCome on, feed me a number!\n" << endl;
+		return true;
+	}
+	else if (numberOfBuilding == 0) {
+		cout << "Zero? You don't trust in my capability? I'm an Intel i7! Challenge me!\n" << endl;
+		return true;
+	}
+	else if (numberOfBuilding > 0 && numberOfBuilding < 1000) {
+		cout << "I thought we are building an entire city, not just a village!\nAre you sure you want only " << numberOfBuilding << " (y/n) ?" << endl;
+		string response;
+		while (response.empty())
+			cin >> response;
+		if (response == "y" || response == "Y") {
+			cout << "Ok fine. I will do it, just for you!\n" << endl;
+			return false;
+		}
+		else if (response == "n" || response == "N") {
+			cout << "I thought so.\n" << endl;
+			return true;
+		}
+		else {
+			cout << "I did not understand, say again?\n" << endl;
+			response.clear();
+		}
+	}
+	else if (numberOfBuilding > 999) {
+		cout << "That looks a pretty good number.\n" << endl;
+		return false;
+	}
+	else {
+		cout << "Is that even a number?\n" << endl;
+		return true;
+	}
+}
+
+/*
+	show number of building being generated
+*/
+void printProgressReport(int i) {
+	cout << "\rBuilt the " << i << "th building... working hard";
+}
+
+/*
+	display ascii art, from  http://www.ascii-code.com/ascii-art/buildings-and-places/cities.php
+*/
+void welcomeDisplay() {
+	cout << " " << endl;
+	cout << " P r o c e d u r a l l y   G e n e r a t e d   M a n h a t t a n ' s    C e n t r a l    P a r k" << endl;
+	cout << "    -------------------------------------------------------------------------------------------" << endl;
+	cout << "                             ________            _______" << endl;
+	cout << "                    /\\ \\ \\ \\/_______/     ______/\\      \\  /\\ \\/ /\\ \\/ /\\  \\_____________" << endl;
+	cout << "                   /\\ \\ \\ \\/______ /     /\\    /:\\\\      \\ ::\\  /::\\  /::\\ /____  ____ __" << endl;
+	cout << "                  /\\ \\ \\ \\/_______/     /:\\\\  /:\\:\\\\______\\::/  \\::/  \\::///   / /   //" << endl;
+	cout << "                 /\\ \\ \\ \\/_______/    _/____\\/:\\:\\:/_____ / / /\\ \\/ /\\ \\///___/ /___//___" << endl;
+	cout << "           _____/___ \\ \\/_______/    /\\::::::\\\\:\\:/_____ / \\ /::\\  /::\\ /____  ____  ____" << endl;
+	cout << "                    \\ \\/_______/    /:\\\\::::::\\\\:/_____ /   \\\\::/  \\::///   / /   / /   /" << endl;
+	cout << "                     \\/_______/    /:\\:\\\\______\\/______/_____\\\\/ /\\ \\///___/ /___/ /_____" << endl;
+	cout << "           \\          \\______/    /:\\:\\:/_____:/\\      \\ ___ /  /::\\ /____  ____  _/\\::::" << endl;
+	cout << "           \\\\__________\\____/    /:\\:\\:/_____:/:\\\\      \\__ /_______/____/_/___/_ /  \\:::" << endl;
+	cout << "           //__________/___/   _/____:/_____:/:\\:\\\\______\\ /                     /\\  /\\::" << endl;
+	cout << "           ///\\          \\/   /\\ .----.\\___:/:\\:\\:/_____ // \\                   /  \\/  \\:" << endl;
+	cout << "           ///\\\\          \\  /::\\\\ \\_\\ \\\\_:/:\\:\\:/_____ //:\\ \\                 /\\  /\\  /\\" << endl;
+	cout << "           //:/\\\\          \\//\\::\\\\ \\ \\ \\\\/:\\:\\:/_____ //:::\\ \\               /  \\/  \\/+/" << endl;
+	cout << "           /:/:/\\\\_________/:\\/:::\\`----' \\\\:\\:/_____ //o:/\\:\\ \\_____________/\\  /\\  / /" << endl;
+	cout << "           :/:/://________//\\::/\\::\\_______\\\\:/_____ ///\\_\\ \\:\\/____________/  \\/  \\/+/\\" << endl;	
+	cout << "           /:/:///_/_/_/_/:\\/::\\ \\:/__  __ /:/_____ ///\\//\\\\/:/ _____  ____/\\  /\\  / /  \\" << endl;
+	cout << "           :/:///_/_/_/_//\\::/\\:\\///_/ /_//:/______/_/ :~\\/::/ /____/ /___/  \\/  \\/+/\\  /" << endl;
+	cout << "           /:///_/_/_/_/:\\/::\\ \\:/__  __ /:/____/\\  / \\\\:\\/:/ _____  ____/\\  /\\  / /  \\/" << endl;
+	cout << "           :///_/_/_/_//\\::/\\:\\///_/ /_//:/____/\\:\\____\\\\::/ /____/ /___/  \\/  \\/+/\\  /\\" << endl;
+	cout << "           ///_/_/_/_/:\\/::\\ \\:/__  __ /:/____/\\:\\/____/\\\\/____________/\\  /\\  / /  \\/  \\" << endl;
+	cout << "           //_/_/_/_//\\::/\\:\\///_/ /_//::::::/\\:\\/____/  /----/----/--/  \\/  \\/+/\\  /\\  /" << endl;
+	cout << "           /_/_/_/_/:\\/::\\ \\:/__  __ /\\:::::/\\:\\/____/ \\/____/____/__/\\  /\\  / /  \\/  \\/_" << endl;
+	cout << "              ----------------------------------------------------------------------" << endl;
+	cout << "               ascii art from ascii-code.com                          An OpenGL 3.3" << endl;
+	cout << "=================================================================================================" << endl;
+	cout << " CONTROL : G - generate city   N - generate new buildings (to add all the control here) \n" << endl;
+	cout << "_________________________________________________________________________________________________" << endl;
+
+}
+
+// ----------------------------------------------------------------------------
+//   INITIALIZATION OF GLFW & CIE STUFF                                       +
+// ----------------------------------------------------------------------------
+
+void initialiseWindow() {
+	// Init GLFW
+	glfwInit();
+	// Set all the required options for GLFW
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+
+	// Create a GLFWwindow object that we can use for GLFW's functions
+	window = glfwCreateWindow(WIDTH, HEIGHT, "LearnOpenGL", nullptr, nullptr);
+	if (window == nullptr)
+	{
+		std::cout << "Failed to create GLFW window" << std::endl;
+		glfwTerminate();
+		//return -1;
+	}
+	glfwMakeContextCurrent(window);
+	// Set the required callback functions
+	glfwSetKeyCallback(window, key_callback);
+	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback); // for window resize
+																	   // Set this to true so GLEW knows to use a modern approach to retrieving function pointers and extensions
+	glewExperimental = GL_TRUE;
+	// Initialize GLEW to setup the OpenGL Function pointers
+	if (glewInit() != GLEW_OK)
+	{
+		std::cout << "Failed to initialize GLEW" << std::endl;
+		//return -1;
+	}
+
+	// Define the viewport dimensionsd
+	int width, height;
+	glfwGetFramebufferSize(window, &width, &height);
+	glViewport(0, 0, width, height);
+
+
+
+	// initialize shaders
+	groundShader = new Shader("TextFiles/vertex.shader", "TextFiles/fragment.shader");
+	skyboxShader = new Shader("TextFiles/skyBoxVertex.shader", "TextFiles/skyBoxFragment.shader");
+	generateSkybox();
+	createAllBuildingTextures();
+	createBuildingModelMatrices();
+	createGround();
+	createBuilding();//VAO VBO 1
+	// GENERATE HERE
+	std::random_device rd; // obtain a random number from hardware
+	std::mt19937 eng(rd()); // seed the generator
+	std::uniform_int_distribution<> distr(0, 4); // define the range
+
+	glEnable(GL_DEPTH_TEST);
 }
