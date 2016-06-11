@@ -130,7 +130,6 @@ int main()
 
 		groundShader->use(); 
 
-		//glm::mat4 view2;
 		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
 		glm::mat4  model(1.0f);
@@ -152,10 +151,12 @@ int main()
 		// create buildings
 		// need a better for loop 
 		glBindVertexArray(buildingVAO);
-		for (int buildingForEachTexture = 2000; buildingForEachTexture <= totalBuildings; buildingForEachTexture += buildingForEachTexture) {
-			glBindTexture(GL_TEXTURE_2D, textureBuilding[buildingForEachTexture /2000 - 1]);
-		
-			glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0, buildingForEachTexture);
+		int BuildingDivisionByTexture = totalBuildings / textureBuilding.size();
+		int buildingToDraw = BuildingDivisionByTexture;
+		for (int i = 0; i < textureBuilding.size(); i++) {
+			glBindTexture(GL_TEXTURE_2D, textureBuilding[i]);
+			glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0, buildingToDraw);
+			buildingToDraw += BuildingDivisionByTexture;
 		}
 		glBindVertexArray(0);
 		glBindTexture(GL_TEXTURE_2D, texturePark);
@@ -513,7 +514,7 @@ generate all buldings textures
 void createAllBuildingTextures() {
 	buildingImagesLocations.push_back("Images/building1.jpg");
 	buildingImagesLocations.push_back("Images/building2.jpg");
-	buildingImagesLocations.push_back("Images/building3.jpg");
+	//buildingImagesLocations.push_back("Images/building3.jpg");
 	buildingImagesLocations.push_back("Images/building4.jpg");
 	buildingImagesLocations.push_back("Images/building5.jpg");
 	for (int i = 0; i < buildingImagesLocations.size(); i++) {
