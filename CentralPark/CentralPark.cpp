@@ -57,7 +57,7 @@ GLfloat groundWidth = 1000.0f;
 //buildings
 GLuint buildingVAO, buildingVBO, instanceVBO;
 std::vector<GLuint> textureBuilding;
-int totalBuildings = 5000;
+int totalBuildings = 10000;
 std::vector<glm::vec3> buldingTranslations;
 std::vector<char*> buildingImagesLocations;
 std::vector<glm::mat4> buildingModelMatrices; // used for scaling buildings
@@ -80,9 +80,8 @@ Shader * skyboxShader;
 GLuint skyboxVAO;
 GLuint cubemapTexture;
 
-// Deltatime
-GLfloat deltaTime = 0.0f;	// Time between current frame and last frame
-GLfloat lastFrame = 0.0f;  	// Time of last frame
+// mouse
+bool firstMouse = true;
 
 int main()
 {
@@ -98,7 +97,7 @@ int main()
 		
 		// Render
 		// Clear the colorbuffer
-		glClearColor(0.0f, 0.3f, 0.7f, 1.0f);
+		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
@@ -106,7 +105,7 @@ int main()
 		glDepthMask(GL_FALSE);// Remember to turn depth writing off
 		skyboxShader->use();
 		glm::mat4 view = glm::mat4(glm::mat3(glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp)));	// Remove any translation component of the view matrix
-		glm::mat4 projection = glm::perspective(glm::radians(45.0f), (GLfloat)WIDTH / (GLfloat)HEIGHT, 1.0f, 100.0f);
+		glm::mat4 projection = glm::perspective(glm::radians(30.0f), (GLfloat)WIDTH / (GLfloat)HEIGHT, 1.0f, 100.0f);
 		glUniformMatrix4fv(glGetUniformLocation(skyboxShader->program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(glGetUniformLocation(skyboxShader->program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 		// skybox cube
@@ -846,14 +845,11 @@ void initialiseWindow() {
 	createGround();
 	createBuilding();//VAO VBO 1
 	generateBuildings();
-	// GENERATE HERE
-	std::random_device rd; // obtain a random number from hardware
-	std::mt19937 eng(rd()); // seed the generator
-	std::uniform_int_distribution<> distr(0, 4); // define the range
+	
 
 	glEnable(GL_DEPTH_TEST);
 }
-bool firstMouse = true;
+
 void mouse_position_callback(GLFWwindow * window, double xPos, double yPos)
 {
 	
