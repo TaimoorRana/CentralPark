@@ -56,7 +56,7 @@ GLfloat groundWidth = 1000.0f;
 //buildings
 GLuint buildingVAO, buildingVBO, instanceVBO;
 std::vector<GLuint> textureBuilding;
-int totalBuildings;
+int totalBuildings = 5000;
 std::vector<glm::vec3> buldingTranslations;
 std::vector<char*> buildingImagesLocations;
 std::vector<glm::mat4> buildingModelMatrices; // used for scaling buildings
@@ -77,7 +77,7 @@ GLuint cubemapTexture;
 
 int main()
 {
-	getUserInput();
+	//getUserInput();
 	initialiseWindow();
 
 	// GAME LOOP START HERE
@@ -86,8 +86,7 @@ int main()
 		// Check if any events have been activiated (key pressed, mouse moved etc.) and call corresponding response functions
 		glfwPollEvents();
 		do_movement();
-		//Sleep(250);
-		generateBuildings();
+		
 		// Render
 		// Clear the colorbuffer
 		glClearColor(0.0f, 0.3f, 0.7f, 1.0f);
@@ -391,13 +390,13 @@ void do_movement()
 {
 	// Camera controls
 	GLfloat cameraSpeed = 0.05f;
-	if (keys[GLFW_KEY_W])
+	if (keys[GLFW_KEY_W] || keys[GLFW_KEY_UP])
 		cameraPos += glm::vec3(cameraFront.x * cameraSpeed, 0, cameraFront.z * cameraSpeed);
-	if (keys[GLFW_KEY_S])
+	if (keys[GLFW_KEY_S] || keys[GLFW_KEY_DOWN])
 		cameraPos -= glm::vec3(cameraFront.x * cameraSpeed, 0, cameraFront.z * cameraSpeed);
-	if (keys[GLFW_KEY_A])
+	if (keys[GLFW_KEY_A] || keys[GLFW_KEY_LEFT])
 		cameraPos -= cameraSpeed * glm::normalize(glm::cross(cameraFront, cameraUp));
-	if (keys[GLFW_KEY_D])
+	if (keys[GLFW_KEY_D] || keys[GLFW_KEY_RIGHT])
 		cameraPos += cameraSpeed * glm::normalize(glm::cross(cameraFront, cameraUp));
 }
 
@@ -426,7 +425,7 @@ void generateBuildings()
 
 			glm::vec3 translation(x, 0, z);
 			buldingTranslations.push_back(translation);
-			printProgressReport(++buildingProgress);
+			//printProgressReport(++buildingProgress);
 			if (buildingProgress == totalBuildings) {
 				cout << "\nBOOM! Done. I know I'm powerful." << endl;
 			}
@@ -460,9 +459,9 @@ void createAllBuildingTextures() {
 generate all buldings models
 */
 void createBuildingModelMatrices() {
-	std::random_device rd; // obtain a random number from hardware
+	std::random_device rd; // dsobtain a random number from hardware
 	std::mt19937 eng(rd()); // seed the generator
-	std::uniform_int_distribution<> distr(1, highestScaleValue); // define the range
+	std::uniform_int_distribution<> distr(highestScaleValue-5, highestScaleValue); // define the range // -5 was added to get rid of very slim buildings
 	for (int i = 0; i < totalBuildings; i++) {
 		glm::mat4 model;
 		
@@ -813,6 +812,7 @@ void initialiseWindow() {
 	createBuildingModelMatrices();
 	createGround();
 	createBuilding();//VAO VBO 1
+	generateBuildings();
 	// GENERATE HERE
 	std::random_device rd; // obtain a random number from hardware
 	std::mt19937 eng(rd()); // seed the generator
