@@ -29,7 +29,6 @@ void createGround();
 void createBuilding();
 void createTexture(GLuint &texture, char* imageLocation);
 void do_movement();
-void generateBuildingPositions();
 void createAllBuildingTextures();
 void createBuildingModelMatrices();
 GLuint loadCubemap(vector<const GLchar*> faces);
@@ -59,7 +58,7 @@ GLfloat groundWidth = 1000.0f;
 //park
 GLuint parkVAO, parkVBO;
 GLuint texturePark;
-GLfloat parkWidth = 50.0f;
+GLfloat parkWidth = 100.0f;
 
 //buildings
 GLuint buildingVAO, buildingVBO, instanceVBO;
@@ -379,14 +378,10 @@ void createBuilding()
 		22,23,21
 	};
 
-	// calculate building translations
-	generateBuildingPositions();
+	
 
 	// save the translations in a VBO
-	glGenBuffers(1, &instanceVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * buldingTranslations.size(), &buldingTranslations[0], GL_STATIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	
 
 
 	// define building VAO, VBO, EBO
@@ -414,11 +409,7 @@ void createBuilding()
 	glEnableVertexAttribArray(2);
 	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)(5 * sizeof(GLfloat)));
 
-	// bind the translation buffer
-	glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-	glEnableVertexAttribArray(3);
-	glVertexAttribPointer(3,3,GL_FLOAT,GL_FALSE, 3 * sizeof(GLfloat),0);
-	glVertexAttribDivisor(3, 1); // tell opengl that this is instanced data
+	
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	GLuint modelMatrixVBO;
@@ -509,42 +500,7 @@ void do_movement()
 	}
 }
 
-/*
-generate bulding positions
-*/
-void generateBuildingPositions()
-{
-	std::random_device rd; // dsobtain a random number from hardware
-	std::mt19937 eng(rd()); // seed the generator
-	std::uniform_int_distribution<> distr(0, groundWidth-1);
-	// while all building positions have not been defined
-	while (buldingTranslations.size() < totalBuildings) {
 
-		// generate x, z values
-		int x = distr(eng) %100, z = distr(eng) % 100;
-
-		
-
-		// make sure the values are on the ground surface
-		if ((x < groundWidth && (x > parkWidth ||( x < parkWidth && z > parkWidth))) && 
-			(z < groundWidth && ( z > parkWidth || ( z < parkWidth && x > parkWidth)))  ) {
-			// randomly assign negative values to x and z
-			bool xSign = (std::rand() % 2) == 0;
-			bool ySign = (std::rand() % 2) == 0;
-			if (!xSign)
-				x *= -1;
-			if (!ySign)
-				z *= -1;
-
-			glm::vec3 translation(x, 0, z);
-			buldingTranslations.push_back(translation);
-			//printProgressReport(++buildingProgress);
-			if (buildingProgress == totalBuildings) {
-				cout << "\nBOOM! Done. I know I'm powerful." << endl;
-			}
-		}
-	}
-}
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height) // for resizing window
 {
@@ -572,16 +528,46 @@ void createAllBuildingTextures() {
 generate all buldings models
 */
 void createBuildingModelMatrices() {
+	
+	//for translation
 	std::random_device rd; // dsobtain a random number from hardware
 	std::mt19937 eng(rd()); // seed the generator
-	std::uniform_int_distribution<> distr(highestScaleValue-5, highestScaleValue); // define the range // -5 was added to get rid of very slim buildings
-	for (int i = 0; i < totalBuildings; i++) {
-		glm::mat4 model;
-		
-		model = glm::scale(model, glm::vec3(distr(eng), distr(eng), distr(eng)));
-		//std::cout
-		buildingModelMatrices.push_back(model);
+	std::uniform_int_distribution<> distr(0, groundWidth - 1);
+
+	// for scaling
+	std::random_device rd2; // dsobtain a random number from hardware
+	std::mt19937 eng2(rd2()); // seed the generator
+	std::uniform_int_distribution<> distr2(highestScaleValue - 6, highestScaleValue); // define the range // -6 was added to get rid of very slim buildings
+
+	int parkPadding = 10;
+	// while all building positions have not been defined
+	while (buildingModelMatrices.size() < totalBuildings) {
+
+		// generate x, z values
+		int x = distr(eng), z = distr(eng);
+
+
+
+		// make sure the values are on the ground surface
+		if ((x < groundWidth && (x > parkWidth || (x < parkWidth + parkPadding && z > parkWidth + parkPadding))) &&
+			(z < groundWidth && (z > parkWidth || (z < parkWidth + parkPadding && x > parkWidth + parkPadding)))) {
+			// randomly assign negative values to x and z
+			bool xSign = (std::rand() % 2) == 0;
+			bool ySign = (std::rand() % 2) == 0;
+			if (!xSign)
+				x *= -1;
+			if (!ySign)
+				z *= -1;
+
+			glm::vec3 translation(x, 0, z);
+			glm::mat4 model;
+			model = glm::translate(model, translation);
+			model = glm::scale(model, glm::vec3(distr2(eng2), distr2(eng2), distr2(eng2)));
+
+			buildingModelMatrices.push_back(model);
+		}
 	}
+
 }
 
 /*
@@ -927,7 +913,7 @@ void initialiseWindow() {
 	createGround();
 	createBuilding();//VAO VBO 1
 	createPark();
-	
+ 	
 
 	glEnable(GL_DEPTH_TEST);
 }
