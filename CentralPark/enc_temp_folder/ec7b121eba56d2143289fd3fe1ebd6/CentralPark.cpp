@@ -174,11 +174,11 @@ void createGround() {
 
 	GLfloat textureSize = 200;
 	GLfloat verticesGround[] = {
-		// triangle 1   texture									normals 
-		-groundWidth, y, -z,		0.0f, 0.0f,					0.0f,1.0f,0.0f,
-		groundWidth, y, -z,		    textureSize,0.0f,			0.0f,1.0f,0.0f,
-		-groundWidth, y, z,			0.0f,textureSize,			0.0f,1.0f,0.0f,
-		groundWidth,  y, z,			textureSize,textureSize,	0.0f,1.0f,0.0f
+		// triangle 1   texture     normals 
+		-groundWidth, y, -z,		 0.0f, 0.0f,			0.0f,1.0f,0.0f,
+		groundWidth, y, -z,		   textureSize,0.0f,					0.0f,1.0f,0.0f,
+		-groundWidth, y, z,				0.0f,textureSize,	0.0f,1.0f,0.0f,
+		groundWidth,  y, z,			textureSize,textureSize,			0.0f,1.0f,0.0f
 	};
 
 	GLuint indices[] = {
