@@ -44,6 +44,7 @@ void initialiseWindow();
 void printProgressReport(int i);
 void mouse_position_callback(GLFWwindow* window, double xPos, double yPos);
 void createPark();
+void colisionDetection();
 
 // Window dimensions
 const GLuint WIDTH = 1600, HEIGHT = 1200;
@@ -53,17 +54,17 @@ int buildingProgress; // for starting flow
 //ground
 GLuint groundVAO, groundVBO;
 GLuint textureGround;
-GLfloat groundWidth = 1000.0f;
+GLfloat groundWidth = 100.0f;
 
 //park
 GLuint parkVAO, parkVBO;
 GLuint texturePark;
-GLfloat parkWidth = 100.0f;
+GLfloat parkWidth = 5.0f;
 
 //buildings
 GLuint buildingVAO, buildingVBO, instanceVBO;
 std::vector<GLuint> textureBuilding;
-int totalBuildings = 10000;
+int totalBuildings = 5;
 std::vector<glm::vec3> buldingTranslations;
 std::vector<char*> buildingImagesLocations;
 std::vector<glm::mat4> buildingModelMatrices; // used for scaling buildings
@@ -468,10 +469,14 @@ void do_movement()
 {
 	// Camera controls
 	GLfloat cameraSpeed = 0.05f;
-	if (keys[GLFW_KEY_W] || keys[GLFW_KEY_UP])
+	if (keys[GLFW_KEY_W] || keys[GLFW_KEY_UP]) {
 		cameraPos += glm::vec3(cameraFront.x * cameraSpeed, 0, cameraFront.z * cameraSpeed);
-	if (keys[GLFW_KEY_S] || keys[GLFW_KEY_DOWN])
+		colisionDetection();
+	}
+	if (keys[GLFW_KEY_S] || keys[GLFW_KEY_DOWN]) {
 		cameraPos -= glm::vec3(cameraFront.x * cameraSpeed, 0, cameraFront.z * cameraSpeed);
+		colisionDetection();
+	}
 	if (keys[GLFW_KEY_A] || keys[GLFW_KEY_LEFT]) {
 
 		GLfloat xoffset = -1.0f;
@@ -544,7 +549,7 @@ void createBuildingModelMatrices() {
 	// while all building positions have not been defined
 	while (buildingModelMatrices.size() < totalBuildings) {
 
-		// generate x, z values
+		// generate x, z values for translation
 		int x = distr(eng), z = distr(eng);
 
 
@@ -564,7 +569,7 @@ void createBuildingModelMatrices() {
 			glm::mat4 model;
 			model = glm::translate(model, translation);
 			model = glm::scale(model, glm::vec3(distr2(eng2), distr2(eng2), distr2(eng2)));
-
+			
 			buildingModelMatrices.push_back(model);
 		}
 	}
@@ -955,4 +960,22 @@ void mouse_position_callback(GLFWwindow * window, double xPos, double yPos)
 	cameraFront = glm::normalize(front);
 	/* Taken from learnopengl.com*/
 	
+}
+
+void colisionDetection() {
+	for (int i = 0; i < buildingModelMatrices.size(); i++) {
+		glm::vec3 buildingPosition(buildingModelMatrices.at(i)[3]);
+		//cout << "x: " << buildingPosition.x << " , " << (int)cameraPos.x << "\n";
+		//cout << "x: " << buildingPosition.z << " , " << (int)cameraPos.z << "\n";
+		//cout << "\n\n\n\n";
+		int width = 10;
+		int buildingHighX = buildingPosition.x + width;
+		int buildingLowX = buildingPosition.x - width;
+		int buildingHighZ = buildingPosition.z + width;
+		int buildingLowZ = buildingPosition.z - width;
+		if (((int)cameraPos.x <= buildingHighX && (int)cameraPos.x >= buildingLowX)   && 
+			((int)cameraPos.z <= buildingHighZ && (int)cameraPos.z >= buildingLowZ)) {
+			cout << "collision!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
+		}
+	}
 }
