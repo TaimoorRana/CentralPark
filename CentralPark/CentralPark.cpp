@@ -933,6 +933,7 @@ void initialiseWindow() {
  	
 
 	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
 }
 
 void mouse_position_callback(GLFWwindow * window, double xPos, double yPos)
@@ -975,18 +976,21 @@ void mouse_position_callback(GLFWwindow * window, double xPos, double yPos)
 
 bool colisionDetection(glm::vec3 nextPosition) {
 	for (int i = 0; i < buildingModelMatrices.size(); i++) {
-		glm::vec3 buildingPosition(buildingModelMatrices.at(i)[3]);
-		//cout << "x: " << buildingPosition.x << " , " << (int)cameraPos.x << "\n";
-		//cout << "x: " << buildingPosition.z << " , " << (int)cameraPos.z << "\n";
-		//cout << "\n\n\n\n";
-		int buildingHighX = buildingPosition.x + highestScaleValue;
-		int buildingLowX = buildingPosition.x - highestScaleValue;
-		int buildingHighZ = buildingPosition.z + highestScaleValue;
-		int buildingLowZ = buildingPosition.z - highestScaleValue;
+		glm::vec3 buildingPosition(buildingModelMatrices.at(i)[3]); // translation vector
+		
+		GLfloat xScale = buildingModelMatrices.at(i)[0][0], zScale = buildingModelMatrices.at(i)[2][2];
+		
+
+		int buildingHighX = buildingPosition.x + xScale;
+		int buildingLowX = buildingPosition.x - xScale;
+		int buildingHighZ = buildingPosition.z + zScale;
+		int buildingLowZ = buildingPosition.z - zScale;
 		if (((int)cameraPos.x <= buildingHighX && (int)cameraPos.x >= buildingLowX)   && 
 			((int)cameraPos.z <= buildingHighZ && (int)cameraPos.z >= buildingLowZ)) {
+			// collision occured
 			return true;
 		}
 	}
+	// no collision
 	return false;
 }
