@@ -44,7 +44,7 @@ void initialiseWindow();
 void printProgressReport(int i);
 void mouse_position_callback(GLFWwindow* window, double xPos, double yPos);
 void createPark();
-void colisionDetection();
+bool colisionDetection(glm::vec3 nextPosition);
 
 // Window dimensions
 const GLuint WIDTH = 1600, HEIGHT = 1200;
@@ -54,17 +54,17 @@ int buildingProgress; // for starting flow
 //ground
 GLuint groundVAO, groundVBO;
 GLuint textureGround;
-GLfloat groundWidth = 100.0f;
+GLfloat groundWidth = 1000.0f;
 
 //park
 GLuint parkVAO, parkVBO;
 GLuint texturePark;
-GLfloat parkWidth = 5.0f;
+GLfloat parkWidth = 50.0f;
 
 //buildings
 GLuint buildingVAO, buildingVBO, instanceVBO;
 std::vector<GLuint> textureBuilding;
-int totalBuildings = 5;
+int totalBuildings = 5000;
 std::vector<glm::vec3> buldingTranslations;
 std::vector<char*> buildingImagesLocations;
 std::vector<glm::mat4> buildingModelMatrices; // used for scaling buildings
@@ -468,14 +468,25 @@ void createTexture(GLuint &texture, char* imageLocation)
 void do_movement()
 {
 	// Camera controls
-	GLfloat cameraSpeed = 0.05f;
+	GLfloat cameraSpeed = 0.10f;
 	if (keys[GLFW_KEY_W] || keys[GLFW_KEY_UP]) {
-		cameraPos += glm::vec3(cameraFront.x * cameraSpeed, 0, cameraFront.z * cameraSpeed);
-		colisionDetection();
+		glm::vec3 nextPosition(cameraFront.x * cameraSpeed, 0, cameraFront.z * cameraSpeed);
+		if (!colisionDetection(nextPosition)) {
+			cameraPos += nextPosition;
+		}
+		else {
+			cameraPos -= nextPosition * cameraSpeed * 100.0f;
+		}
+
 	}
 	if (keys[GLFW_KEY_S] || keys[GLFW_KEY_DOWN]) {
-		cameraPos -= glm::vec3(cameraFront.x * cameraSpeed, 0, cameraFront.z * cameraSpeed);
-		colisionDetection();
+		glm::vec3 nextPosition(cameraFront.x * cameraSpeed, 0, cameraFront.z * cameraSpeed);
+		if (!colisionDetection(nextPosition)) {
+			cameraPos -= nextPosition;
+		} else{
+			cameraPos += nextPosition * cameraSpeed * 100.0f;
+		}
+		
 	}
 	if (keys[GLFW_KEY_A] || keys[GLFW_KEY_LEFT]) {
 
@@ -962,20 +973,20 @@ void mouse_position_callback(GLFWwindow * window, double xPos, double yPos)
 	
 }
 
-void colisionDetection() {
+bool colisionDetection(glm::vec3 nextPosition) {
 	for (int i = 0; i < buildingModelMatrices.size(); i++) {
 		glm::vec3 buildingPosition(buildingModelMatrices.at(i)[3]);
 		//cout << "x: " << buildingPosition.x << " , " << (int)cameraPos.x << "\n";
 		//cout << "x: " << buildingPosition.z << " , " << (int)cameraPos.z << "\n";
 		//cout << "\n\n\n\n";
-		int width = 10;
-		int buildingHighX = buildingPosition.x + width;
-		int buildingLowX = buildingPosition.x - width;
-		int buildingHighZ = buildingPosition.z + width;
-		int buildingLowZ = buildingPosition.z - width;
+		int buildingHighX = buildingPosition.x + highestScaleValue;
+		int buildingLowX = buildingPosition.x - highestScaleValue;
+		int buildingHighZ = buildingPosition.z + highestScaleValue;
+		int buildingLowZ = buildingPosition.z - highestScaleValue;
 		if (((int)cameraPos.x <= buildingHighX && (int)cameraPos.x >= buildingLowX)   && 
 			((int)cameraPos.z <= buildingHighZ && (int)cameraPos.z >= buildingLowZ)) {
-			cout << "collision!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!";
+			return true;
 		}
 	}
+	return false;
 }
