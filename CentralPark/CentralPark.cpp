@@ -33,9 +33,6 @@ void createAllBuildingTextures();
 void createBuildingModelMatrices();
 GLuint loadCubemap(vector<const GLchar*> faces);
 void generateSkybox();
-bool test1xaxis(int v4, int v3, int xf);
-bool test2zaxis(int v4, int v1, int zf);
-bool isInsideOccupiedAreaTest(int v4x, int v4z, int v3x, int v1z, int xf, int zf);
 void getUserInput();
 void welcomeDisplay();
 bool intelliConsoleResponse(int numberOfBuilding);
@@ -58,6 +55,7 @@ int buildingProgress; // for starting flow
 GLuint groundVAO, groundVBO;
 GLuint textureGround;
 GLfloat groundWidth = 1000.0f;
+GLfloat groundWidthz = groundWidth;
 glm::vec2 currentGroundWidth = { groundWidth, groundWidth }; // format : < x, z>
 glm::mat4 groundModel(1.0f);
 //park
@@ -70,6 +68,7 @@ Shader *buildingShader;
 GLuint buildingVAO, buildingVBO, instanceVBO;
 std::vector<GLuint> textureBuilding;
 int totalBuildings = 5000;
+int additionalNumberBuilding;
 std::vector<glm::vec3> buldingTranslations;
 std::vector<char*> buildingImagesLocations;
 std::vector<glm::mat4> buildingModelMatrices; // used for scaling buildings
@@ -581,16 +580,26 @@ void createBuildingModelMatrices() {
 		}
 }
 
+/*
+	generate additional buildings after the new ground as been generated.
+	take in account on which axis it's beeing generated (parameter char c)
+*/
 void generateAdditionalBuilding(char c, unsigned qtBuilding) {
-	int maxGround;
+	int maxGround, minGround;
 	totalBuildings += qtBuilding;
 	//for translation
 	std::random_device rd; // dsobtain a random number from hardware
 	std::mt19937 eng(rd()); // seed the generator
-	std::uniform_int_distribution<> distrOld(parkWidth, groundWidth - 1);
-	if (c == 'x') { maxGround = currentGroundWidth.x; }
-	else maxGround = currentGroundWidth.y;
-	std::uniform_int_distribution<> distrCurrent(groundWidth, maxGround - 1);
+	if (c == 'x') { 
+		maxGround = currentGroundWidth.x; 
+		minGround = groundWidth;
+	}
+	else {
+		maxGround = currentGroundWidth.y;
+		minGround = groundWidthz;
+	}
+	std::uniform_int_distribution<> distrOld(parkWidth, minGround - 1);
+	std::uniform_int_distribution<> distrCurrent(minGround, maxGround - 1);
 
 	// for scaling
 	std::random_device rd2; // dsobtain a random number from hardware
@@ -608,7 +617,7 @@ void generateAdditionalBuilding(char c, unsigned qtBuilding) {
 			x = distrOld(eng), z = distrCurrent(eng);
 			p = z;
 		}
-		if (p < maxGround &&  p > groundWidth || p > -currentGroundWidth.x && p < -groundWidth) {
+		if (p < maxGround &&  p > minGround || p > -currentGroundWidth.x && p < -minGround) {
 			// randomly assign negative values to x and z
 			bool xSign = (std::rand() % 2) == 0;
 			bool ySign = (std::rand() % 2) == 0;
@@ -732,58 +741,13 @@ void generateSkybox() {
 }
 
 // ----------------------------------------------------------------------------
-//   COLLISION DETECTION STUFF -  DURING BUILDING GENERATION                  +
-// ----------------------------------------------------------------------------
-// to do:
-// 1) detect park function
-// 2) test boundary function : use after testing if point is not in the area from test isInsideOccupiedAreaTest
-
-
-
-/*	test if the the "foreign" point (randomly generated location point) is 
-	in an area already occupied by taking 2 tests : x-axis and z-axis. 
-	function takes in vertice position and the foreign position denoted with 'f'
-*/
-bool isInsideOccupiedAreaTest(int v4x, int v4z, int v3x, int v1z, int xf, int zf) {
-	if (test1xaxis(v4x, v3x, xf) && test2zaxis(v4z, v1z, zf)) {
-		cout << "point is inside  or on a vertice" << endl;  // to be removed once full implementation of collision detection is completed
-		return true;
-	}
-	else {
-		cout << "point is outside" << endl; // to be removed once full implementation of collision detection is completed
-		return false;
-	}
-}
-
-/*	first test if the "foreign" point (randomly generated location point) is 
-	in an area already occupied by an existing building on the x-axis
-*/
-bool test1xaxis(int v4, int v3, int xf) {
-	if (v4 <= xf && v3 >= xf) {
-		cout << "point is between x4 and x3 or on a vertice" << endl;  // to be removed once full implementation of collision detection is completed
-		return true;
-	}
-	else return false;
-}
-
-/*	second test if the "foreign" point (randomly generated location point) is
-in an area already occupied by an existing building on the z-axis
-*/
-bool test2zaxis(int v4, int v1, int zf) {
-	if (v4 <= zf && v1 >= zf) { 
-		cout << "point is between z4 and z1  or on a vertice" << endl; // to be removed once full implementation of collision detection is completed
-		return true;
-	}
-	else return false;
-}
-
-// ----------------------------------------------------------------------------
 //   GROUD GENEREATION							                             +
 // ----------------------------------------------------------------------------
 
-/*	test if the cameraPosition is going outside of the ground boundary
-by testing on the x-axis and  z-axis. 
-The ground boundary contain padding so it allows to generate the ground before reaching the actual bound
+/*	
+	test if the cameraPosition is going outside of the ground boundary
+	by testing on the x-axis and  z-axis. 
+	The ground boundary contain padding so it allows to generate the ground before reaching the actual bound
 */
 void checkGoingOutsideOfBoundary(glm::vec2 currentGroundWidth, glm::vec3 cameraPosition) {
 	// reminder format of vec2 currentGroundWidth < x, z >  == std :< x, y >
@@ -796,21 +760,26 @@ void checkGoingOutsideOfBoundary(glm::vec2 currentGroundWidth, glm::vec3 cameraP
 		generateAdditionalGround('z');
 }
 
+/*
+	generate new ground taking in account on which axis
+*/
 void generateAdditionalGround(char c) {
 	switch (c) {
 	case 'x': {
-		groundModel = glm::scale(groundModel, glm::vec3(1.01f, 1.0f, 1.0f));
+		groundModel = glm::scale(groundModel, glm::vec3(1.015f, 1.0f, 1.0f)); 
 		groundWidth = currentGroundWidth.x;
-		currentGroundWidth.x = currentGroundWidth.x * 1.01;
-		generateAdditionalBuilding('x', 50); // function takes which axis is growing and number of new building
+		currentGroundWidth.x = currentGroundWidth.x * 1.005; // scale factor lower than actual transformation to ensure more ground than recorded
+		additionalNumberBuilding = rand() % 100 + 1;
+		generateAdditionalBuilding('x', additionalNumberBuilding); // function takes which axis is growing and number of new building
 		createBuilding();
 		break;
 	}
 	case 'z': {
-		groundModel = glm::scale(groundModel, glm::vec3(1.0f, 1.0f, 1.01f));
-		groundWidth = currentGroundWidth.y;
-		currentGroundWidth.y = currentGroundWidth.y * 1.01;
-		generateAdditionalBuilding('z', 50); // function takes which axis is growing and number of new building
+		groundModel = glm::scale(groundModel, glm::vec3(1.0f, 1.0f, 1.015f));
+		groundWidthz = currentGroundWidth.y;
+		currentGroundWidth.y = currentGroundWidth.y * 1.005;
+		additionalNumberBuilding = rand() % 100 + 1;
+		generateAdditionalBuilding('z', additionalNumberBuilding); // function takes which axis is growing and number of new building
 		createBuilding();
 		break;
 	}
