@@ -69,6 +69,8 @@ GLuint buildingVAO, buildingVBO, instanceVBO;
 std::vector<GLuint> textureBuilding;
 int totalBuildings = 5000;
 int additionalNumberBuilding;
+int accumutaledAdditionalNewBuilding;
+bool newBuildingGenerated = false;
 std::vector<glm::vec3> buldingTranslations;
 std::vector<char*> buildingImagesLocations;
 std::vector<glm::mat4> buildingModelMatrices; // used for scaling buildings
@@ -164,12 +166,22 @@ int main()
 		// create buildings
 		// need a better for loop 
 		glBindVertexArray(buildingVAO);
-		int BuildingDivisionByTexture = totalBuildings / textureBuilding.size();
+		int BuildingDivisionByTexture = (totalBuildings-accumutaledAdditionalNewBuilding) / textureBuilding.size();
 		int buildingToDraw = BuildingDivisionByTexture;
 		for (int i = 0; i < textureBuilding.size(); i++) {
 			glBindTexture(GL_TEXTURE_2D, textureBuilding[i]);
 			glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0, buildingToDraw);
 			buildingToDraw += BuildingDivisionByTexture;
+		}
+		if (newBuildingGenerated == true) { // add different texture to newly generated building
+			int counter = 20, i = 0;
+			while (counter < accumutaledAdditionalNewBuilding) {
+				if (i >= textureBuilding.size()) { i = 0; }
+				glBindTexture(GL_TEXTURE_2D, textureBuilding[i]);
+				glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0, buildingToDraw+counter);
+				counter += 20;
+				i++;
+			}
 		}
 		glBindVertexArray(0);
 		glBindTexture(GL_TEXTURE_2D, texturePark);
@@ -585,8 +597,10 @@ void createBuildingModelMatrices() {
 	take in account on which axis it's beeing generated (parameter char c)
 */
 void generateAdditionalBuilding(char c, unsigned qtBuilding) {
+	newBuildingGenerated = true;
 	int maxGround, minGround;
 	totalBuildings += qtBuilding;
+	accumutaledAdditionalNewBuilding += qtBuilding;
 	//for translation
 	std::random_device rd; // dsobtain a random number from hardware
 	std::mt19937 eng(rd()); // seed the generator
@@ -769,7 +783,7 @@ void generateAdditionalGround(char c) {
 		groundModel = glm::scale(groundModel, glm::vec3(1.015f, 1.0f, 1.0f)); 
 		groundWidth = currentGroundWidth.x;
 		currentGroundWidth.x = currentGroundWidth.x * 1.005; // scale factor lower than actual transformation to ensure more ground than recorded
-		additionalNumberBuilding = rand() % 100 + 1;
+		additionalNumberBuilding = rand() % 75 + 1;
 		generateAdditionalBuilding('x', additionalNumberBuilding); // function takes which axis is growing and number of new building
 		createBuilding();
 		break;
@@ -777,8 +791,8 @@ void generateAdditionalGround(char c) {
 	case 'z': {
 		groundModel = glm::scale(groundModel, glm::vec3(1.0f, 1.0f, 1.015f));
 		groundWidthz = currentGroundWidth.y;
-		currentGroundWidth.y = currentGroundWidth.y * 1.005;
-		additionalNumberBuilding = rand() % 100 + 1;
+		currentGroundWidth.y = currentGroundWidth.y * 1.005;  // scale factor lower than actual transformation to ensure more ground than recorded
+		additionalNumberBuilding = rand() % 75 + 1;
 		generateAdditionalBuilding('z', additionalNumberBuilding); // function takes which axis is growing and number of new building
 		createBuilding();
 		break;
