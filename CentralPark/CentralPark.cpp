@@ -47,6 +47,7 @@ void createPark();
 bool colisionDetection(glm::vec3 nextPosition);
 void checkGoingOutsideOfBoundary(glm::vec2 currentGroundWidth, glm::vec3 cameraPosition);
 void generateAdditionalGround(char c);
+void generateAdditionalBuilding(char c, unsigned qtBuilding);
 
 // Window dimensions
 const GLuint WIDTH = 1600, HEIGHT = 1200;
@@ -74,7 +75,6 @@ std::vector<char*> buildingImagesLocations;
 std::vector<glm::mat4> buildingModelMatrices; // used for scaling buildings
 GLfloat highestScaleValue = 10.0f; // used for scaling buildings
 
-
 //camera
 //glm::vec3 cameraPos(0.0f, 3.0f, 0.0f), cameraFront(0.0f, 0.0f, -1.0f); original
 glm::vec3 cameraPos(990.0f, 3.0f, 990.0f), cameraFront(0.0f, 0.0f, -1.0f);
@@ -85,6 +85,7 @@ GLfloat lastX = WIDTH / 2.0;
 GLfloat lastY = HEIGHT / 2.0;
 bool keys[1024];
 GLfloat cameraSpeed = 0.40f;
+
 
 //skybox
 Shader * skyboxShader;
@@ -103,6 +104,7 @@ int main()
 	glm::mat4 projection = glm::perspective(glm::radians(45.0f), (GLfloat)WIDTH / (GLfloat)HEIGHT, 1.0f, 400.0f);
 	while (!glfwWindowShouldClose(window))
 	{
+		cout << "\rCurrent position: " << cameraPos.x << " , " << cameraPos.z;
 		// Check if any events have been activiated (key pressed, mouse moved etc.) and call corresponding response functions
 		glfwPollEvents();
 		do_movement();
@@ -540,7 +542,6 @@ void createAllBuildingTextures() {
 generate all buldings models
 */
 void createBuildingModelMatrices() {
-	
 	//for translation
 	std::random_device rd; // dsobtain a random number from hardware
 	std::mt19937 eng(rd()); // seed the generator
@@ -553,12 +554,11 @@ void createBuildingModelMatrices() {
 
 	int parkPadding = 10;
 	// while all building positions have not been defined
+
 	while (buildingModelMatrices.size() < totalBuildings) {
 
 		// generate x, z values for translation
 		int x = distr(eng), z = distr(eng);
-
-
 
 		// make sure the values are on the ground surface
 		if ((x < groundWidth && (x > parkWidth || (x < parkWidth + parkPadding && z > parkWidth + parkPadding))) &&
@@ -575,12 +575,58 @@ void createBuildingModelMatrices() {
 			glm::mat4 model;
 			model = glm::translate(model, translation);
 			model = glm::scale(model, glm::vec3(distr2(eng2), distr2(eng2), distr2(eng2)));
-			
+
+			buildingModelMatrices.push_back(model);
+			}
+		}
+}
+
+void generateAdditionalBuilding(char c, unsigned qtBuilding) {
+	int maxGround;
+	totalBuildings += qtBuilding;
+	//for translation
+	std::random_device rd; // dsobtain a random number from hardware
+	std::mt19937 eng(rd()); // seed the generator
+	std::uniform_int_distribution<> distrOld(parkWidth, groundWidth - 1);
+	if (c == 'x') { maxGround = currentGroundWidth.x; }
+	else maxGround = currentGroundWidth.y;
+	std::uniform_int_distribution<> distrCurrent(groundWidth, maxGround - 1);
+
+	// for scaling
+	std::random_device rd2; // dsobtain a random number from hardware
+	std::mt19937 eng2(rd2()); // seed the generator
+	std::uniform_int_distribution<> distr2(highestScaleValue - 6, highestScaleValue); // define the range // -6 was added to get rid of very slim buildings
+
+	while (buildingModelMatrices.size() < totalBuildings) {
+		int x, z, p; // generate x, z values for translation
+		
+		if (c == 'x') {
+			x = distrCurrent(eng), z = distrOld(eng);
+			p = x;
+		}
+		else {
+			x = distrOld(eng), z = distrCurrent(eng);
+			p = z;
+		}
+		if (p < maxGround &&  p > groundWidth || p > -currentGroundWidth.x && p < -groundWidth) {
+			// randomly assign negative values to x and z
+			bool xSign = (std::rand() % 2) == 0;
+			bool ySign = (std::rand() % 2) == 0;
+			if (!xSign)
+				x *= -1;
+			if (!ySign)
+				z *= -1;
+
+			glm::vec3 translation(x, 0, z);
+			glm::mat4 model;
+			model = glm::translate(model, translation);
+			model = glm::scale(model, glm::vec3(distr2(eng2), distr2(eng2), distr2(eng2)));
+
 			buildingModelMatrices.push_back(model);
 		}
 	}
-
 }
+
 
 /*
 generates cubemap
@@ -740,34 +786,35 @@ by testing on the x-axis and  z-axis.
 The ground boundary contain padding so it allows to generate the ground before reaching the actual bound
 */
 void checkGoingOutsideOfBoundary(glm::vec2 currentGroundWidth, glm::vec3 cameraPosition) {
-	cout << cameraPosition.x << " x : z " << cameraPos.z << endl; // ***to be removed once full implementation of collision detection is completed
-	cout << currentGroundWidth.y << " +z " << endl;
-	// test for ground boundary is : -x > cameraPos.x > +x or -z > cameraPos.z > +z with a padding all around the ground
 	// reminder format of vec2 currentGroundWidth < x, z >  == std :< x, y >
 	GLfloat padding = 40.0f;
 	if (-currentGroundWidth.x + padding > cameraPosition.x || currentGroundWidth.x - padding < cameraPosition.x)
+		// test for ground boundary is : -x > cameraPos.x > +x, with a padding 
 		generateAdditionalGround('x');
 	if (-currentGroundWidth.y+padding > cameraPosition.z || currentGroundWidth.y - padding < cameraPosition.z)
+		// test for ground boundary is : -z > cameraPos.z > +z, with a padding 
 		generateAdditionalGround('z');
-	else {
-		cout << "inside of ground boundary" << endl; // ***to be removed once full implementation of collision detection is completed
-	}
 }
 
 void generateAdditionalGround(char c) {
-	cout << "generateAdditionalGround method activated" << endl;
 	switch (c) {
 	case 'x': {
 		groundModel = glm::scale(groundModel, glm::vec3(1.01f, 1.0f, 1.0f));
+		groundWidth = currentGroundWidth.x;
 		currentGroundWidth.x = currentGroundWidth.x * 1.01;
+		generateAdditionalBuilding('x', 50); // function takes which axis is growing and number of new building
+		createBuilding();
 		break;
 	}
 	case 'z': {
 		groundModel = glm::scale(groundModel, glm::vec3(1.0f, 1.0f, 1.01f));
+		groundWidth = currentGroundWidth.y;
 		currentGroundWidth.y = currentGroundWidth.y * 1.01;
+		generateAdditionalBuilding('z', 50); // function takes which axis is growing and number of new building
+		createBuilding();
 		break;
 	}
-	default:  cout << "everything ok" << endl;
+	default:  break;
 	}
 }
 
@@ -799,7 +846,7 @@ void getUserInput() {
 	totalBuildings = numberOfBuildingToGenerate;
 	system("CLS"); 
 	welcomeDisplay();
-	cout << "Let me call my children the threads:" << endl;
+	cout << "Let me get some threads:" << endl;
 }
 
 /*	
