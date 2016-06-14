@@ -166,23 +166,23 @@ int main()
 		// create buildings
 		// need a better for loop 
 		glBindVertexArray(buildingVAO);
-		int BuildingDivisionByTexture = (totalBuildings-accumutaledAdditionalNewBuilding) / textureBuilding.size();
+		int BuildingDivisionByTexture = (totalBuildings) / textureBuilding.size();
 		int buildingToDraw = BuildingDivisionByTexture;
 		for (int i = 0; i < textureBuilding.size(); i++) {
 			glBindTexture(GL_TEXTURE_2D, textureBuilding[i]);
 			glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0, buildingToDraw);
 			buildingToDraw += BuildingDivisionByTexture;
 		}
-		if (newBuildingGenerated == true) { // add different texture to newly generated building
-			int counter = 20, i = 0;
-			while (counter < accumutaledAdditionalNewBuilding) {
-				if (i >= textureBuilding.size()) { i = 0; }
-				glBindTexture(GL_TEXTURE_2D, textureBuilding[i]);
-				glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0, buildingToDraw+counter);
-				counter += 20;
-				i++;
-			}
-		}
+		//if (newBuildingGenerated == true) { // add different texture to newly generated building
+		//	int counter = 20, i = 0;
+		//	while (counter < accumutaledAdditionalNewBuilding) {
+		//		if (i >= textureBuilding.size()) { i = 0; }
+		//		glBindTexture(GL_TEXTURE_2D, textureBuilding[i]);
+		//		glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0, buildingToDraw+counter);
+		//		counter += 20;
+		//		i++;
+		//	}
+		//}
 		glBindVertexArray(0);
 		glBindTexture(GL_TEXTURE_2D, texturePark);
 
@@ -645,7 +645,9 @@ void generateAdditionalBuilding(char c, unsigned qtBuilding) {
 			model = glm::translate(model, translation);
 			model = glm::scale(model, glm::vec3(distr2(eng2), distr2(eng2), distr2(eng2)));
 
-			buildingModelMatrices.push_back(model);
+			//buildingModelMatrices.push_back(model); ** TO BE REPLACED WITH INSERT
+			int index = rand() % totalBuildings;
+			//buildingModelMatrices.insert(index, model);
 		}
 	}
 }
