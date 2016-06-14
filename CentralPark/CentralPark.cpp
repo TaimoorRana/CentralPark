@@ -40,7 +40,7 @@ void getUserInput();
 void welcomeDisplay();
 bool intelliConsoleResponse(int numberOfBuilding);
 int getIntegerFromInput(string s);
-void initialiseWindow();
+int initialiseWindow();
 void printProgressReport(int i);
 void mouse_position_callback(GLFWwindow* window, double xPos, double yPos);
 void createPark();
@@ -79,6 +79,7 @@ GLfloat pitch = 0.0f;
 GLfloat lastX = WIDTH / 2.0;
 GLfloat lastY = HEIGHT / 2.0;
 bool keys[1024];
+GLfloat cameraSpeed = 0.10f;
 
 //skybox
 Shader * skyboxShader;
@@ -91,7 +92,7 @@ bool firstMouse = true;
 int main()
 {
 	//getUserInput();
-	initialiseWindow();
+	int e=initialiseWindow();
 
 	// GAME LOOP START HERE
 	glm::mat4 projection = glm::perspective(glm::radians(45.0f), (GLfloat)WIDTH / (GLfloat)HEIGHT, 1.0f, 400.0f);
@@ -174,22 +175,26 @@ int main()
 
 	// Terminate GLFW, clearing any resources allocated by GLFW.
 	glfwTerminate();
-	return 0;
+	return e;
 }
 
 // Is called whenever a key is pressed/released via GLFW
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode)
 {
-	std::cout << key << std::endl;
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GL_TRUE);
-
+	// for do movement function
 	if (action == GLFW_PRESS) {
 		keys[key] = true;
 	}
 	if (action == GLFW_RELEASE) {
 		keys[key] = false;
 	}
+	// increase/decrease camera speed
+	if (key == GLFW_KEY_PAGE_UP && action == GLFW_PRESS)
+		cameraSpeed += 0.25f;
+	if (key == GLFW_KEY_PAGE_DOWN && action == GLFW_PRESS)
+		cameraSpeed -= 0.25f;
 }
 
 void createGround() {
@@ -468,7 +473,6 @@ void createTexture(GLuint &texture, char* imageLocation)
 void do_movement()
 {
 	// Camera controls
-	GLfloat cameraSpeed = 0.10f;
 	if (keys[GLFW_KEY_W] || keys[GLFW_KEY_UP]) {
 		glm::vec3 nextPosition(cameraFront.x * cameraSpeed, 0, cameraFront.z * cameraSpeed);
 		if (!colisionDetection(nextPosition)) {
@@ -883,7 +887,7 @@ void welcomeDisplay() {
 //   INITIALIZATION OF GLFW & CIE STUFF                                       +
 // ----------------------------------------------------------------------------
 
-void initialiseWindow() {
+int initialiseWindow() {
 	// Init GLFW
 	glfwInit();
 	// Set all the required options for GLFW
@@ -898,7 +902,7 @@ void initialiseWindow() {
 	{
 		std::cout << "Failed to create GLFW window" << std::endl;
 		glfwTerminate();
-		//return -1;
+		return -1;
 	}
 	glfwMakeContextCurrent(window);
 	// Set the required callback functions
@@ -911,7 +915,7 @@ void initialiseWindow() {
 	if (glewInit() != GLEW_OK)
 	{
 		std::cout << "Failed to initialize GLEW" << std::endl;
-		//return -1;
+		return -1;
 	}
 
 	// Define the viewport dimensionsd
@@ -934,6 +938,8 @@ void initialiseWindow() {
 
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
+
+	return 0;
 }
 
 void mouse_position_callback(GLFWwindow * window, double xPos, double yPos)
