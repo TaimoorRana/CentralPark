@@ -45,7 +45,8 @@ void printProgressReport(int i);
 void mouse_position_callback(GLFWwindow* window, double xPos, double yPos);
 void createPark();
 bool colisionDetection(glm::vec3 nextPosition);
-bool checkGoingOutsideOfBoundary(glm::vec4 currentGroundWidth, glm::vec3 cameraPosition);
+void checkGoingOutsideOfBoundary(glm::vec2 currentGroundWidth, glm::vec3 cameraPosition);
+void generateAdditionalGround(char c);
 
 // Window dimensions
 const GLuint WIDTH = 1600, HEIGHT = 1200;
@@ -56,8 +57,8 @@ int buildingProgress; // for starting flow
 GLuint groundVAO, groundVBO;
 GLuint textureGround;
 GLfloat groundWidth = 1000.0f;
-glm::vec4 currentGroundWidth = { groundWidth, groundWidth, -groundWidth, -groundWidth }; // format : < x, z, -x,-z>
-
+glm::vec2 currentGroundWidth = { groundWidth, groundWidth }; // format : < x, z>
+glm::mat4 groundModel(1.0f);
 //park
 GLuint parkVAO, parkVBO;
 GLuint texturePark;
@@ -83,7 +84,7 @@ GLfloat pitch = 0.0f;
 GLfloat lastX = WIDTH / 2.0;
 GLfloat lastY = HEIGHT / 2.0;
 bool keys[1024];
-GLfloat cameraSpeed = 0.10f;
+GLfloat cameraSpeed = 0.40f;
 
 //skybox
 Shader * skyboxShader;
@@ -120,6 +121,7 @@ int main()
 		
 		glUniformMatrix4fv(glGetUniformLocation(skyboxShader->program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(glGetUniformLocation(skyboxShader->program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+		
 		// skybox cube
 		glBindVertexArray(skyboxVAO);
 		glActiveTexture(GL_TEXTURE0);
@@ -128,10 +130,6 @@ int main()
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 		glBindVertexArray(0);
 		glDepthMask(GL_TRUE);
-
-
-
-
 
 
 		groundShader->use(); 
@@ -146,7 +144,7 @@ int main()
 		GLint projLoc = glGetUniformLocation(groundShader->program, "projection");
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(groundModel));
 		glBindTexture(GL_TEXTURE_2D, textureGround);
 		
 		// create ground
@@ -245,29 +243,7 @@ void createGround() {
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)0);
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)(3 * sizeof(GLfloat)));
-	//glEnableVertexAttribArray(3);
-	//glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)(5 * sizeof(GLfloat)));
-
-	glm::mat4 model(1.0f);
-	GLuint modelMatrixVBO;
-	glGenBuffers(1, &modelMatrixVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, modelMatrixVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::mat4), &model, GL_STATIC_DRAW);
-	glEnableVertexAttribArray(4);
-	glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(glm::vec4), (GLvoid*)0);
-	glEnableVertexAttribArray(5);
-	glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(glm::vec4), (GLvoid*) sizeof(glm::vec4));
-	glEnableVertexAttribArray(6);
-	glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(glm::vec4), (GLvoid*)(2 * sizeof(glm::vec4)));
-	glEnableVertexAttribArray(7);
-	glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(glm::vec4), (GLvoid*)(3 * sizeof(glm::vec4)));
-
-
-	glVertexAttribDivisor(4, 1);
-	glVertexAttribDivisor(5, 1);
-	glVertexAttribDivisor(6, 1);
-	glVertexAttribDivisor(7, 1);
-
+	
 	// unfocus
 	glBindVertexArray(0);
 }
@@ -493,8 +469,7 @@ void do_movement()
 		else {
 			cameraPos -= nextPosition * cameraSpeed * 100.0f;
 		}
-		//do if here. if going outside of ground boudary, scale the ground, else do nothing
-		cout << checkGoingOutsideOfBoundary(currentGroundWidth, cameraPos);
+		checkGoingOutsideOfBoundary(currentGroundWidth, cameraPos); // check if going outside of ground boundary
 
 	}
 	if (keys[GLFW_KEY_S] || keys[GLFW_KEY_DOWN]) {
@@ -504,8 +479,7 @@ void do_movement()
 		} else{
 			cameraPos += nextPosition * cameraSpeed * 100.0f;
 		}
-		//do if here. if going outside of ground boudary, scale the ground, else do nothing
-		cout << checkGoingOutsideOfBoundary(currentGroundWidth, cameraPos);
+		checkGoingOutsideOfBoundary(currentGroundWidth, cameraPos); // check if going outside of ground boundary
 		
 		
 	}
@@ -513,7 +487,7 @@ void do_movement()
 
 		GLfloat xoffset = -1.0f;
 
-		GLfloat sensitivity = 0.05;	// Change this value to your liking
+		GLfloat sensitivity = 0.40;	// Change this value to your liking
 		xoffset *= sensitivity;
 
 		yaw += xoffset;
@@ -526,7 +500,7 @@ void do_movement()
 	if (keys[GLFW_KEY_D] || keys[GLFW_KEY_RIGHT]) {
 		GLfloat xoffset = 1.0f;
 
-		GLfloat sensitivity = 0.05;	// Change this value to your liking
+		GLfloat sensitivity = 0.40;	// Change this value to your liking
 		xoffset *= sensitivity;
 
 		yaw += xoffset;
@@ -765,21 +739,36 @@ bool test2zaxis(int v4, int v1, int zf) {
 by testing on the x-axis and  z-axis. 
 The ground boundary contain padding so it allows to generate the ground before reaching the actual bound
 */
-bool checkGoingOutsideOfBoundary(glm::vec4 currentGroundWidth, glm::vec3 cameraPosition) {
+void checkGoingOutsideOfBoundary(glm::vec2 currentGroundWidth, glm::vec3 cameraPosition) {
 	cout << cameraPosition.x << " x : z " << cameraPos.z << endl; // ***to be removed once full implementation of collision detection is completed
-	// test for ground boundary is : -x <= cameraPos.x < +x and -z <= cameraPos.z < +z with a padding of 15.0f all around the ground
-	// reminder format of vec4 currentGroundWidth < x, z, -x, -z>  == std :< x, y, z, w >
-	GLfloat padding = 15.0f;
-	if (currentGroundWidth.z+padding <= cameraPosition.x && currentGroundWidth.x-padding >= cameraPosition.x && currentGroundWidth.w+padding <= cameraPosition.z && currentGroundWidth.y >= cameraPosition.z-padding)
-		return true; // cameraPos is inside the ground
+	cout << currentGroundWidth.y << " +z " << endl;
+	// test for ground boundary is : -x > cameraPos.x > +x or -z > cameraPos.z > +z with a padding all around the ground
+	// reminder format of vec2 currentGroundWidth < x, z >  == std :< x, y >
+	GLfloat padding = 40.0f;
+	if (-currentGroundWidth.x + padding > cameraPosition.x || currentGroundWidth.x - padding < cameraPosition.x)
+		generateAdditionalGround('x');
+	if (-currentGroundWidth.y+padding > cameraPosition.z || currentGroundWidth.y - padding < cameraPosition.z)
+		generateAdditionalGround('z');
 	else {
-		cout << "outside of ground boundary" << endl; // ***to be removed once full implementation of collision detection is completed
-		return false;
+		cout << "inside of ground boundary" << endl; // ***to be removed once full implementation of collision detection is completed
 	}
 }
 
-void generateAdditionalGround() {
-
+void generateAdditionalGround(char c) {
+	cout << "generateAdditionalGround method activated" << endl;
+	switch (c) {
+	case 'x': {
+		groundModel = glm::scale(groundModel, glm::vec3(1.01f, 1.0f, 1.0f));
+		currentGroundWidth.x = currentGroundWidth.x * 1.01;
+		break;
+	}
+	case 'z': {
+		groundModel = glm::scale(groundModel, glm::vec3(1.0f, 1.0f, 1.01f));
+		currentGroundWidth.y = currentGroundWidth.y * 1.01;
+		break;
+	}
+	default:  cout << "everything ok" << endl;
+	}
 }
 
 
