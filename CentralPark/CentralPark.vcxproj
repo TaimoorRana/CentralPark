@@ -133,6 +133,11 @@
   <ItemGroup>
     <None Include="TextFiles\floorFragment.shader" />
     <None Include="TextFiles\floorVertex.shader" />
+    <None Include="TextFiles\fragment.shader" />
+    <None Include="TextFiles\skyBoxFragment.shader" />
+    <None Include="TextFiles\skyBoxVertex.shader" />
+    <None Include="TextFiles\vertex.shader" />
+    <None Include="TextFiles\vertexGround.shader" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -46,5 +46,20 @@
     <None Include="TextFiles\floorVertex.shader">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="TextFiles\fragment.shader">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="TextFiles\skyBoxFragment.shader">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="TextFiles\skyBoxVertex.shader">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="TextFiles\vertex.shader">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="TextFiles\vertexGround.shader">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

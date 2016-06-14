@@ -33,18 +33,18 @@ void createAllBuildingTextures();
 void createBuildingModelMatrices();
 GLuint loadCubemap(vector<const GLchar*> faces);
 void generateSkybox();
-bool test1xaxis(int v4, int v3, int xf);
-bool test2zaxis(int v4, int v1, int zf);
-bool isInsideOccupiedAreaTest(int v4x, int v4z, int v3x, int v1z, int xf, int zf);
 void getUserInput();
 void welcomeDisplay();
 bool intelliConsoleResponse(int numberOfBuilding);
 int getIntegerFromInput(string s);
-void initialiseWindow();
+int initialiseWindow();
 void printProgressReport(int i);
 void mouse_position_callback(GLFWwindow* window, double xPos, double yPos);
 void createPark();
 bool colisionDetection(glm::vec3 nextPosition);
+void checkGoingOutsideOfBoundary(glm::vec2 currentGroundWidth, glm::vec3 cameraPosition);
+void generateAdditionalGround(char c);
+void generateAdditionalBuilding(char c, unsigned qtBuilding);
 
 // Window dimensions
 const GLuint WIDTH = 1600, HEIGHT = 1200;
@@ -55,30 +55,38 @@ int buildingProgress; // for starting flow
 GLuint groundVAO, groundVBO;
 GLuint textureGround;
 GLfloat groundWidth = 1000.0f;
-
+GLfloat groundWidthz = groundWidth;
+glm::vec2 currentGroundWidth = { groundWidth, groundWidth }; // format : < x, z>
+glm::mat4 groundModel(1.0f);
 //park
 GLuint parkVAO, parkVBO;
 GLuint texturePark;
 GLfloat parkWidth = 50.0f;
 
 //buildings
+Shader *buildingShader;
 GLuint buildingVAO, buildingVBO, instanceVBO;
 std::vector<GLuint> textureBuilding;
 int totalBuildings = 5000;
+int additionalNumberBuilding;
+int accumutaledAdditionalNewBuilding;
+bool newBuildingGenerated = false;
 std::vector<glm::vec3> buldingTranslations;
 std::vector<char*> buildingImagesLocations;
 std::vector<glm::mat4> buildingModelMatrices; // used for scaling buildings
 GLfloat highestScaleValue = 10.0f; // used for scaling buildings
 
-
 //camera
-glm::vec3 cameraPos(0.0f, 3.0f, 0.0f), cameraFront(0.0f, 0.0f, -1.0f);
+//glm::vec3 cameraPos(0.0f, 3.0f, 0.0f), cameraFront(0.0f, 0.0f, -1.0f); original
+glm::vec3 cameraPos(990.0f, 3.0f, 990.0f), cameraFront(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp(glm::normalize(glm::cross( glm::vec3(1,0,0), cameraFront)));
 GLfloat yaw = -90.0f;	// Yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right (due to how Eular angles work) so we initially rotate a bit to the left.
 GLfloat pitch = 0.0f;
 GLfloat lastX = WIDTH / 2.0;
 GLfloat lastY = HEIGHT / 2.0;
 bool keys[1024];
+GLfloat cameraSpeed = 0.40f;
+
 
 //skybox
 Shader * skyboxShader;
@@ -91,12 +99,13 @@ bool firstMouse = true;
 int main()
 {
 	//getUserInput();
-	initialiseWindow();
+	int e = initialiseWindow();
 
 	// GAME LOOP START HERE
 	glm::mat4 projection = glm::perspective(glm::radians(45.0f), (GLfloat)WIDTH / (GLfloat)HEIGHT, 1.0f, 400.0f);
 	while (!glfwWindowShouldClose(window))
 	{
+		cout << "\rCurrent position: " << cameraPos.x << " , " << cameraPos.z;
 		// Check if any events have been activiated (key pressed, mouse moved etc.) and call corresponding response functions
 		glfwPollEvents();
 		do_movement();
@@ -115,6 +124,7 @@ int main()
 		
 		glUniformMatrix4fv(glGetUniformLocation(skyboxShader->program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(glGetUniformLocation(skyboxShader->program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+		
 		// skybox cube
 		glBindVertexArray(skyboxVAO);
 		glActiveTexture(GL_TEXTURE0);
@@ -123,10 +133,6 @@ int main()
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 		glBindVertexArray(0);
 		glDepthMask(GL_TRUE);
-
-
-
-
 
 
 		groundShader->use(); 
@@ -141,24 +147,42 @@ int main()
 		GLint projLoc = glGetUniformLocation(groundShader->program, "projection");
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
-		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(groundModel));
 		glBindTexture(GL_TEXTURE_2D, textureGround);
-
+		
 		// create ground
 		glBindVertexArray(groundVAO);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
 
+
+		buildingShader->use();
+		model = glm::mat4(1.0f);
+		modelLoc = glGetUniformLocation(buildingShader->program, "model");
+		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
+
 		// create buildings
 		// need a better for loop 
 		glBindVertexArray(buildingVAO);
-		int BuildingDivisionByTexture = totalBuildings / textureBuilding.size();
+		int BuildingDivisionByTexture = (totalBuildings) / textureBuilding.size();
 		int buildingToDraw = BuildingDivisionByTexture;
 		for (int i = 0; i < textureBuilding.size(); i++) {
 			glBindTexture(GL_TEXTURE_2D, textureBuilding[i]);
 			glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0, buildingToDraw);
 			buildingToDraw += BuildingDivisionByTexture;
 		}
+		//if (newBuildingGenerated == true) { // add different texture to newly generated building
+		//	int counter = 20, i = 0;
+		//	while (counter < accumutaledAdditionalNewBuilding) {
+		//		if (i >= textureBuilding.size()) { i = 0; }
+		//		glBindTexture(GL_TEXTURE_2D, textureBuilding[i]);
+		//		glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0, buildingToDraw+counter);
+		//		counter += 20;
+		//		i++;
+		//	}
+		//}
 		glBindVertexArray(0);
 		glBindTexture(GL_TEXTURE_2D, texturePark);
 
@@ -174,22 +198,26 @@ int main()
 
 	// Terminate GLFW, clearing any resources allocated by GLFW.
 	glfwTerminate();
-	return 0;
+	return e;
 }
 
 // Is called whenever a key is pressed/released via GLFW
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode)
 {
-	std::cout << key << std::endl;
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GL_TRUE);
-
+	// for do movement function
 	if (action == GLFW_PRESS) {
 		keys[key] = true;
 	}
 	if (action == GLFW_RELEASE) {
 		keys[key] = false;
 	}
+	// increase/decrease camera speed
+	if (key == GLFW_KEY_PAGE_UP && action == GLFW_PRESS)
+		cameraSpeed += 0.25f;
+	if (key == GLFW_KEY_PAGE_DOWN && action == GLFW_PRESS)
+		cameraSpeed -= 0.25f;
 }
 
 void createGround() {
@@ -228,29 +256,7 @@ void createGround() {
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)0);
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)(3 * sizeof(GLfloat)));
-	//glEnableVertexAttribArray(3);
-	//glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(GL_FLOAT), (GLvoid*)(5 * sizeof(GLfloat)));
-
-	glm::mat4 model(1.0f);
-	GLuint modelMatrixVBO;
-	glGenBuffers(1, &modelMatrixVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, modelMatrixVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(glm::mat4), &model, GL_STATIC_DRAW);
-	glEnableVertexAttribArray(4);
-	glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(glm::vec4), (GLvoid*)0);
-	glEnableVertexAttribArray(5);
-	glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(glm::vec4), (GLvoid*) sizeof(glm::vec4));
-	glEnableVertexAttribArray(6);
-	glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(glm::vec4), (GLvoid*)(2 * sizeof(glm::vec4)));
-	glEnableVertexAttribArray(7);
-	glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(glm::vec4), (GLvoid*)(3 * sizeof(glm::vec4)));
-
-
-	glVertexAttribDivisor(4, 1);
-	glVertexAttribDivisor(5, 1);
-	glVertexAttribDivisor(6, 1);
-	glVertexAttribDivisor(7, 1);
-
+	
 	// unfocus
 	glBindVertexArray(0);
 }
@@ -468,7 +474,6 @@ void createTexture(GLuint &texture, char* imageLocation)
 void do_movement()
 {
 	// Camera controls
-	GLfloat cameraSpeed = 0.10f;
 	if (keys[GLFW_KEY_W] || keys[GLFW_KEY_UP]) {
 		glm::vec3 nextPosition(cameraFront.x * cameraSpeed, 0, cameraFront.z * cameraSpeed);
 		if (!colisionDetection(nextPosition)) {
@@ -477,6 +482,7 @@ void do_movement()
 		else {
 			cameraPos -= nextPosition * cameraSpeed * 100.0f;
 		}
+		checkGoingOutsideOfBoundary(currentGroundWidth, cameraPos); // check if going outside of ground boundary
 
 	}
 	if (keys[GLFW_KEY_S] || keys[GLFW_KEY_DOWN]) {
@@ -486,13 +492,15 @@ void do_movement()
 		} else{
 			cameraPos += nextPosition * cameraSpeed * 100.0f;
 		}
+		checkGoingOutsideOfBoundary(currentGroundWidth, cameraPos); // check if going outside of ground boundary
+		
 		
 	}
 	if (keys[GLFW_KEY_A] || keys[GLFW_KEY_LEFT]) {
 
 		GLfloat xoffset = -1.0f;
 
-		GLfloat sensitivity = 0.05;	// Change this value to your liking
+		GLfloat sensitivity = 0.40;	// Change this value to your liking
 		xoffset *= sensitivity;
 
 		yaw += xoffset;
@@ -505,7 +513,7 @@ void do_movement()
 	if (keys[GLFW_KEY_D] || keys[GLFW_KEY_RIGHT]) {
 		GLfloat xoffset = 1.0f;
 
-		GLfloat sensitivity = 0.05;	// Change this value to your liking
+		GLfloat sensitivity = 0.40;	// Change this value to your liking
 		xoffset *= sensitivity;
 
 		yaw += xoffset;
@@ -545,7 +553,6 @@ void createAllBuildingTextures() {
 generate all buldings models
 */
 void createBuildingModelMatrices() {
-	
 	//for translation
 	std::random_device rd; // dsobtain a random number from hardware
 	std::mt19937 eng(rd()); // seed the generator
@@ -558,12 +565,11 @@ void createBuildingModelMatrices() {
 
 	int parkPadding = 10;
 	// while all building positions have not been defined
+
 	while (buildingModelMatrices.size() < totalBuildings) {
 
 		// generate x, z values for translation
 		int x = distr(eng), z = distr(eng);
-
-
 
 		// make sure the values are on the ground surface
 		if ((x < groundWidth && (x > parkWidth || (x < parkWidth + parkPadding && z > parkWidth + parkPadding))) &&
@@ -580,12 +586,72 @@ void createBuildingModelMatrices() {
 			glm::mat4 model;
 			model = glm::translate(model, translation);
 			model = glm::scale(model, glm::vec3(distr2(eng2), distr2(eng2), distr2(eng2)));
-			
+
 			buildingModelMatrices.push_back(model);
+			}
+		}
+}
+
+/*
+	generate additional buildings after the new ground as been generated.
+	take in account on which axis it's beeing generated (parameter char c)
+*/
+void generateAdditionalBuilding(char c, unsigned qtBuilding) {
+	newBuildingGenerated = true;
+	int maxGround, minGround;
+	totalBuildings += qtBuilding;
+	accumutaledAdditionalNewBuilding += qtBuilding;
+	//for translation
+	std::random_device rd; // dsobtain a random number from hardware
+	std::mt19937 eng(rd()); // seed the generator
+	if (c == 'x') { 
+		maxGround = currentGroundWidth.x; 
+		minGround = groundWidth;
+	}
+	else {
+		maxGround = currentGroundWidth.y;
+		minGround = groundWidthz;
+	}
+	std::uniform_int_distribution<> distrOld(parkWidth, minGround - 1);
+	std::uniform_int_distribution<> distrCurrent(minGround, maxGround - 1);
+
+	// for scaling
+	std::random_device rd2; // dsobtain a random number from hardware
+	std::mt19937 eng2(rd2()); // seed the generator
+	std::uniform_int_distribution<> distr2(highestScaleValue - 6, highestScaleValue); // define the range // -6 was added to get rid of very slim buildings
+
+	while (buildingModelMatrices.size() < totalBuildings) {
+		int x, z, p; // generate x, z values for translation
+		
+		if (c == 'x') {
+			x = distrCurrent(eng), z = distrOld(eng);
+			p = x;
+		}
+		else {
+			x = distrOld(eng), z = distrCurrent(eng);
+			p = z;
+		}
+		if (p < maxGround &&  p > minGround || p > -currentGroundWidth.x && p < -minGround) {
+			// randomly assign negative values to x and z
+			bool xSign = (std::rand() % 2) == 0;
+			bool ySign = (std::rand() % 2) == 0;
+			if (!xSign)
+				x *= -1;
+			if (!ySign)
+				z *= -1;
+
+			glm::vec3 translation(x, 0, z);
+			glm::mat4 model;
+			model = glm::translate(model, translation);
+			model = glm::scale(model, glm::vec3(distr2(eng2), distr2(eng2), distr2(eng2)));
+
+			//buildingModelMatrices.push_back(model); ** TO BE REPLACED WITH INSERT
+			int index = rand() % totalBuildings;
+			//buildingModelMatrices.insert(index, model);
 		}
 	}
-
 }
+
 
 /*
 generates cubemap
@@ -691,58 +757,51 @@ void generateSkybox() {
 }
 
 // ----------------------------------------------------------------------------
-//   COLLISION DETECTION STUFF -  DURING BUILDING GENERATION                  +
+//   GROUD GENEREATION							                             +
 // ----------------------------------------------------------------------------
-// to do:
-// 1) detect park function
-// 2) test boundary function : use after testing if point is not in the area from test isInsideOccupiedAreaTest
 
-
-
-/*	test if the the "foreign" point (randomly generated location point) is 
-	in an area already occupied by taking 2 tests : x-axis and z-axis. 
-	function takes in vertice position and the foreign position denoted with 'f'
+/*	
+	test if the cameraPosition is going outside of the ground boundary
+	by testing on the x-axis and  z-axis. 
+	The ground boundary contain padding so it allows to generate the ground before reaching the actual bound
 */
-bool isInsideOccupiedAreaTest(int v4x, int v4z, int v3x, int v1z, int xf, int zf) {
-	if (test1xaxis(v4x, v3x, xf) && test2zaxis(v4z, v1z, zf)) {
-		cout << "point is inside  or on a vertice" << endl;  // to be removed once full implementation of collision detection is completed
-		return true;
-	}
-	else {
-		cout << "point is outside" << endl; // to be removed once full implementation of collision detection is completed
-		return false;
-	}
+void checkGoingOutsideOfBoundary(glm::vec2 currentGroundWidth, glm::vec3 cameraPosition) {
+	// reminder format of vec2 currentGroundWidth < x, z >  == std :< x, y >
+	GLfloat padding = 40.0f;
+	if (-currentGroundWidth.x + padding > cameraPosition.x || currentGroundWidth.x - padding < cameraPosition.x)
+		// test for ground boundary is : -x > cameraPos.x > +x, with a padding 
+		generateAdditionalGround('x');
+	if (-currentGroundWidth.y+padding > cameraPosition.z || currentGroundWidth.y - padding < cameraPosition.z)
+		// test for ground boundary is : -z > cameraPos.z > +z, with a padding 
+		generateAdditionalGround('z');
 }
 
-/*	first test if the "foreign" point (randomly generated location point) is 
-	in an area already occupied by an existing building on the x-axis
+/*
+	generate new ground taking in account on which axis
 */
-bool test1xaxis(int v4, int v3, int xf) {
-	if (v4 <= xf && v3 >= xf) {
-		cout << "point is between x4 and x3 or on a vertice" << endl;  // to be removed once full implementation of collision detection is completed
-		return true;
+void generateAdditionalGround(char c) {
+	switch (c) {
+	case 'x': {
+		groundModel = glm::scale(groundModel, glm::vec3(1.015f, 1.0f, 1.0f)); 
+		groundWidth = currentGroundWidth.x;
+		currentGroundWidth.x = currentGroundWidth.x * 1.005; // scale factor lower than actual transformation to ensure more ground than recorded
+		additionalNumberBuilding = rand() % 75 + 1;
+		generateAdditionalBuilding('x', additionalNumberBuilding); // function takes which axis is growing and number of new building
+		createBuilding();
+		break;
 	}
-	else return false;
-}
-
-/*	second test if the "foreign" point (randomly generated location point) is
-in an area already occupied by an existing building on the z-axis
-*/
-bool test2zaxis(int v4, int v1, int zf) {
-	if (v4 <= zf && v1 >= zf) { 
-		cout << "point is between z4 and z1  or on a vertice" << endl; // to be removed once full implementation of collision detection is completed
-		return true;
+	case 'z': {
+		groundModel = glm::scale(groundModel, glm::vec3(1.0f, 1.0f, 1.015f));
+		groundWidthz = currentGroundWidth.y;
+		currentGroundWidth.y = currentGroundWidth.y * 1.005;  // scale factor lower than actual transformation to ensure more ground than recorded
+		additionalNumberBuilding = rand() % 75 + 1;
+		generateAdditionalBuilding('z', additionalNumberBuilding); // function takes which axis is growing and number of new building
+		createBuilding();
+		break;
 	}
-	else return false;
+	default:  break;
+	}
 }
-
-// ----------------------------------------------------------------------------
-//   COLLISION DETECTION STUFF -  CAMERA MOVEMENT                             +
-// ----------------------------------------------------------------------------
-// to do:
-// 1) test up, down, left, right to get closer object, set into a variable as boundary limit for -+x and -+z -> need 4 variables
-//		this would avoid to constantly iterate throught the collection all the time
-//		may use insertion sorting algorithm or binary search
 
 
 // ----------------------------------------------------------------------------
@@ -772,7 +831,7 @@ void getUserInput() {
 	totalBuildings = numberOfBuildingToGenerate;
 	system("CLS"); 
 	welcomeDisplay();
-	cout << "Let me call my children the threads:" << endl;
+	cout << "Let me get some threads:" << endl;
 }
 
 /*	
@@ -883,7 +942,7 @@ void welcomeDisplay() {
 //   INITIALIZATION OF GLFW & CIE STUFF                                       +
 // ----------------------------------------------------------------------------
 
-void initialiseWindow() {
+int initialiseWindow() {
 	// Init GLFW
 	glfwInit();
 	// Set all the required options for GLFW
@@ -898,20 +957,20 @@ void initialiseWindow() {
 	{
 		std::cout << "Failed to create GLFW window" << std::endl;
 		glfwTerminate();
-		//return -1;
+		return -1;
 	}
 	glfwMakeContextCurrent(window);
 	// Set the required callback functions
 	glfwSetCursorPosCallback(window, mouse_position_callback);
 	glfwSetKeyCallback(window, key_callback);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback); // for window resize
-																	   // Set this to true so GLEW knows to use a modern approach to retrieving function pointers and extensions
+	// Set this to true so GLEW knows to use a modern approach to retrieving function pointers and extensions
 	glewExperimental = GL_TRUE;
 	// Initialize GLEW to setup the OpenGL Function pointers
 	if (glewInit() != GLEW_OK)
 	{
 		std::cout << "Failed to initialize GLEW" << std::endl;
-		//return -1;
+		return -1;
 	}
 
 	// Define the viewport dimensionsd
@@ -922,8 +981,9 @@ void initialiseWindow() {
 
 
 	// initialize shaders
-	groundShader = new Shader("TextFiles/vertex.shader", "TextFiles/fragment.shader");
+	groundShader = new Shader("TextFiles/vertexGround.shader", "TextFiles/fragment.shader");
 	skyboxShader = new Shader("TextFiles/skyBoxVertex.shader", "TextFiles/skyBoxFragment.shader");
+	buildingShader = new Shader("TextFiles/vertex.shader", "TextFiles/fragment.shader");
 	generateSkybox();
 	createAllBuildingTextures();
 	createBuildingModelMatrices();
@@ -934,6 +994,8 @@ void initialiseWindow() {
 
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
+
+	return 0;
 }
 
 void mouse_position_callback(GLFWwindow * window, double xPos, double yPos)
