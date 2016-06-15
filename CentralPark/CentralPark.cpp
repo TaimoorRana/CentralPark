@@ -79,8 +79,8 @@ std::vector<glm::mat4> buildingModelMatrices; // used for scaling buildings
 GLfloat highestScaleValue = 10.0f; // used for scaling buildings
 
 //camera
-//glm::vec3 cameraPos(0.0f, 3.0f, 0.0f), cameraFront(0.0f, 0.0f, -1.0f); original
-glm::vec3 cameraPos(990.0f, 3.0f, 990.0f), cameraFront(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraPos(0.0f, 3.0f, 0.0f), cameraFront(0.0f, 0.0f, -1.0f); // original
+//glm::vec3 cameraPos(990.0f, 3.0f, 990.0f), cameraFront(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp(glm::normalize(glm::cross( glm::vec3(1,0,0), cameraFront)));
 GLfloat yaw = -90.0f;	// Yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right (due to how Eular angles work) so we initially rotate a bit to the left.
 GLfloat pitch = 0.0f;
@@ -88,6 +88,8 @@ GLfloat lastX = WIDTH / 2.0;
 GLfloat lastY = HEIGHT / 2.0;
 bool keys[1024];
 GLfloat cameraSpeed = 0.40f;
+glm::vec3 cameraTempStore = cameraFront;
+bool changeView = false;
 
 
 //skybox
@@ -220,9 +222,27 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	}
 	// increase/decrease camera speed
 	if (key == GLFW_KEY_PAGE_UP && action == GLFW_PRESS)
-		cameraSpeed += 0.25f;
+		cameraSpeed += 0.05f;
 	if (key == GLFW_KEY_PAGE_DOWN && action == GLFW_PRESS)
-		cameraSpeed -= 0.25f;
+		cameraSpeed -= 0.05f;
+	// toggle to change view to looking down from sky
+	if (key == GLFW_KEY_T && action == GLFW_PRESS) {
+		if (changeView = true) {
+			changeView = false;
+			cameraTempStore = cameraFront;
+			cameraFront = cameraPos;
+			cameraUp = {0.0f, 0.0f, -1.0f};
+			cameraPos.y = 10.0f;
+		}
+		else {
+			changeView = true;
+			cameraFront = cameraTempStore;
+			cameraUp = { 0.0f, 1.0f, 0.0f };
+			cameraPos.y = 3.0f;
+		}
+
+	}
+
 }
 
 void createGround() {
@@ -1002,6 +1022,10 @@ int initialiseWindow() {
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 
+	//generate random camera position
+	cameraPos.x = rand() % (int)groundWidth;
+	cameraPos.z = rand() % (int)groundWidth;
+	
 	return 0;
 }
 
