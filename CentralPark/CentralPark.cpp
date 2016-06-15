@@ -24,6 +24,7 @@ using namespace std;
 
 // Function prototypes
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void createGround();
 void createBuilding();
@@ -49,6 +50,7 @@ void generateAdditionalBuilding(char c, unsigned qtBuilding);
 // Window dimensions
 const GLuint WIDTH = 1600, HEIGHT = 1200;
 GLFWwindow* window;
+bool clickedLeftButton = false;
 Shader *groundShader;
 int buildingProgress; // for starting flow
 //ground
@@ -77,8 +79,8 @@ std::vector<glm::mat4> buildingModelMatrices; // used for scaling buildings
 GLfloat highestScaleValue = 10.0f; // used for scaling buildings
 
 //camera
-//glm::vec3 cameraPos(0.0f, 3.0f, 0.0f), cameraFront(0.0f, 0.0f, -1.0f); original
-glm::vec3 cameraPos(990.0f, 3.0f, 990.0f), cameraFront(0.0f, 0.0f, -1.0f);
+glm::vec3 cameraPos(0.0f, 3.0f, 0.0f), cameraFront(0.0f, 0.0f, -1.0f); // original
+//glm::vec3 cameraPos(990.0f, 3.0f, 990.0f), cameraFront(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp(glm::normalize(glm::cross( glm::vec3(1,0,0), cameraFront)));
 GLfloat yaw = -90.0f;	// Yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right (due to how Eular angles work) so we initially rotate a bit to the left.
 GLfloat pitch = 0.0f;
@@ -86,6 +88,8 @@ GLfloat lastX = WIDTH / 2.0;
 GLfloat lastY = HEIGHT / 2.0;
 bool keys[1024];
 GLfloat cameraSpeed = 0.40f;
+glm::vec3 cameraTempStore = cameraFront;
+bool changeView = false;
 
 
 //skybox
@@ -98,8 +102,11 @@ bool firstMouse = true;
 
 int main()
 {
-	//getUserInput();
+	getUserInput();
 	int e = initialiseWindow();
+	if (e != 0) {
+		return e;
+	}
 
 	// GAME LOOP START HERE
 	glm::mat4 projection = glm::perspective(glm::radians(45.0f), (GLfloat)WIDTH / (GLfloat)HEIGHT, 1.0f, 400.0f);
@@ -178,7 +185,7 @@ int main()
 		//	while (counter < accumutaledAdditionalNewBuilding) {
 		//		if (i >= textureBuilding.size()) { i = 0; }
 		//		glBindTexture(GL_TEXTURE_2D, textureBuilding[i]);
-		//		glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0, buildingToDraw+counter);
+		//		glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0, counter);
 		//		counter += 20;
 		//		i++;
 		//	}
@@ -215,9 +222,27 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	}
 	// increase/decrease camera speed
 	if (key == GLFW_KEY_PAGE_UP && action == GLFW_PRESS)
-		cameraSpeed += 0.25f;
+		cameraSpeed += 0.05f;
 	if (key == GLFW_KEY_PAGE_DOWN && action == GLFW_PRESS)
-		cameraSpeed -= 0.25f;
+		cameraSpeed -= 0.05f;
+	// toggle to change view to looking down from sky
+	//if (key == GLFW_KEY_T && action == GLFW_PRESS) {
+	//	if (changeView = true) {
+	//		changeView = false;
+	//		cameraTempStore = cameraFront;
+	//		cameraFront = cameraPos;
+	//		cameraUp = {0.0f, 0.0f, -1.0f};
+	//		cameraPos.y = 10.0f;
+	//	}
+	//	else {
+	//		changeView = true;
+	//		cameraFront = cameraTempStore;
+	//		cameraUp = { 0.0f, 1.0f, 0.0f };
+	//		cameraPos.y = 3.0f;
+	//	}
+
+	//}
+
 }
 
 void createGround() {
@@ -588,6 +613,13 @@ void createBuildingModelMatrices() {
 			model = glm::scale(model, glm::vec3(distr2(eng2), distr2(eng2), distr2(eng2)));
 
 			buildingModelMatrices.push_back(model);
+			
+			printProgressReport(++buildingProgress);
+			if (buildingProgress == totalBuildings) {
+				cout << "\nBOOM! Done. I know I'm Powerful.\nHmmmm... where is the Central Park?" << endl;
+
+			}
+			
 			}
 		}
 }
@@ -612,7 +644,7 @@ void generateAdditionalBuilding(char c, unsigned qtBuilding) {
 		maxGround = currentGroundWidth.y;
 		minGround = groundWidthz;
 	}
-	std::uniform_int_distribution<> distrOld(parkWidth, minGround - 1);
+	std::uniform_int_distribution<> distrOld(0, minGround - 1);
 	std::uniform_int_distribution<> distrCurrent(minGround, maxGround - 1);
 
 	// for scaling
@@ -784,7 +816,7 @@ void generateAdditionalGround(char c) {
 	case 'x': {
 		groundModel = glm::scale(groundModel, glm::vec3(1.015f, 1.0f, 1.0f)); 
 		groundWidth = currentGroundWidth.x;
-		currentGroundWidth.x = currentGroundWidth.x * 1.005; // scale factor lower than actual transformation to ensure more ground than recorded
+		currentGroundWidth.x = currentGroundWidth.x * 1.014; // scale factor lower than actual transformation to ensure more ground than recorded
 		additionalNumberBuilding = rand() % 75 + 1;
 		generateAdditionalBuilding('x', additionalNumberBuilding); // function takes which axis is growing and number of new building
 		createBuilding();
@@ -793,7 +825,7 @@ void generateAdditionalGround(char c) {
 	case 'z': {
 		groundModel = glm::scale(groundModel, glm::vec3(1.0f, 1.0f, 1.015f));
 		groundWidthz = currentGroundWidth.y;
-		currentGroundWidth.y = currentGroundWidth.y * 1.005;  // scale factor lower than actual transformation to ensure more ground than recorded
+		currentGroundWidth.y = currentGroundWidth.y * 1.014;  // scale factor lower than actual transformation to ensure more ground than recorded
 		additionalNumberBuilding = rand() % 75 + 1;
 		generateAdditionalBuilding('z', additionalNumberBuilding); // function takes which axis is growing and number of new building
 		createBuilding();
@@ -831,7 +863,7 @@ void getUserInput() {
 	totalBuildings = numberOfBuildingToGenerate;
 	system("CLS"); 
 	welcomeDisplay();
-	cout << "Let me get some threads:" << endl;
+	cout << "Let me get some threads go work:" << endl;
 }
 
 /*	
@@ -932,9 +964,10 @@ void welcomeDisplay() {
 	cout << "           /_/_/_/_/:\\/::\\ \\:/__  __ /\\:::::/\\:\\/____/ \\/____/____/__/\\  /\\  / /  \\/  \\/_" << endl;
 	cout << "              ----------------------------------------------------------------------" << endl;
 	cout << "               ascii art from ascii-code.com                          An OpenGL 3.3" << endl;
-	cout << "=================================================================================================" << endl;
-	cout << " CONTROL : G - generate city   N - generate new buildings (to add all the control here) \n" << endl;
-	cout << "_________________________________________________________________________________________________" << endl;
+	cout << "======================================================================================================" << endl;
+	cout << " CONTROL:W/UP: moving up\tS/DOWN: moving down\tA/LEFT: rotate left\tD/RIGHT: rotate right" << endl;
+	cout << " \t PgUP/PgDn: increase/decrease camera speed\tESC: close window" << endl;
+	cout << "______________________________________________________________________________________________________" << endl;
 
 }
 
@@ -952,7 +985,7 @@ int initialiseWindow() {
 
 
 	// Create a GLFWwindow object that we can use for GLFW's functions
-	window = glfwCreateWindow(WIDTH, HEIGHT, "LearnOpenGL", nullptr, nullptr);
+	window = glfwCreateWindow(WIDTH, HEIGHT, "Central Park", nullptr, nullptr);
 	if (window == nullptr)
 	{
 		std::cout << "Failed to create GLFW window" << std::endl;
@@ -961,6 +994,7 @@ int initialiseWindow() {
 	}
 	glfwMakeContextCurrent(window);
 	// Set the required callback functions
+	glfwSetMouseButtonCallback(window, mouse_button_callback);
 	glfwSetCursorPosCallback(window, mouse_position_callback);
 	glfwSetKeyCallback(window, key_callback);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback); // for window resize
@@ -995,45 +1029,60 @@ int initialiseWindow() {
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 
+	//generate random camera position
+	cameraPos.x = rand() % (int)groundWidth;
+	cameraPos.z = rand() % (int)groundWidth;
+	
 	return 0;
+}
+
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+
+	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+		clickedLeftButton = true;
+	}
+	else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
+		clickedLeftButton = false;
+	}
 }
 
 void mouse_position_callback(GLFWwindow * window, double xPos, double yPos)
 {
-	
-	/* Taken from learnopengl.com*/
-	if (firstMouse)
-	{
+	if (clickedLeftButton == true) {
+		/* Taken from learnopengl.com*/
+		if (firstMouse)
+		{
+			lastX = xPos;
+			lastY = yPos;
+			firstMouse = false;
+		}
+
+		GLfloat xoffset = xPos - lastX;
+		GLfloat yoffset = lastY - yPos; // Reversed since y-coordinates go from bottom to left
 		lastX = xPos;
 		lastY = yPos;
-		firstMouse = false;
+
+		GLfloat sensitivity = 0.05;	// Change this value to your liking
+		xoffset *= sensitivity;
+		yoffset *= sensitivity;
+
+		yaw += xoffset;
+		pitch += yoffset;
+
+		// Make sure that when pitch is out of bounds, screen doesn't get flipped
+		if (pitch > 89.0f)
+			pitch = 89.0f;
+		if (pitch < -89.0f)
+			pitch = -89.0f;
+
+		glm::vec3 front;
+		front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+		front.y = sin(glm::radians(pitch));
+		front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+		cameraFront = glm::normalize(front);
+		/* Taken from learnopengl.com*/
 	}
-
-	GLfloat xoffset = xPos - lastX;
-	GLfloat yoffset = lastY - yPos; // Reversed since y-coordinates go from bottom to left
-	lastX = xPos;
-	lastY = yPos;
-
-	GLfloat sensitivity = 0.05;	// Change this value to your liking
-	xoffset *= sensitivity;
-	yoffset *= sensitivity;
-
-	yaw += xoffset;
-	pitch += yoffset;
-
-	// Make sure that when pitch is out of bounds, screen doesn't get flipped
-	if (pitch > 89.0f)
-		pitch = 89.0f;
-	if (pitch < -89.0f)
-		pitch = -89.0f;
-
-	glm::vec3 front;
-	front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-	front.y = sin(glm::radians(pitch));
-	front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-	cameraFront = glm::normalize(front);
-	/* Taken from learnopengl.com*/
-	
 }
 
 bool colisionDetection(glm::vec3 nextPosition) {
