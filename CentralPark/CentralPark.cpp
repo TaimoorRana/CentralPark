@@ -24,6 +24,7 @@ using namespace std;
 
 // Function prototypes
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mode);
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void createGround();
 void createBuilding();
@@ -49,6 +50,7 @@ void generateAdditionalBuilding(char c, unsigned qtBuilding);
 // Window dimensions
 const GLuint WIDTH = 1600, HEIGHT = 1200;
 GLFWwindow* window;
+bool clickedLeftButton = false;
 Shader *groundShader;
 int buildingProgress; // for starting flow
 //ground
@@ -965,6 +967,7 @@ int initialiseWindow() {
 	}
 	glfwMakeContextCurrent(window);
 	// Set the required callback functions
+	glfwSetMouseButtonCallback(window, mouse_button_callback);
 	glfwSetCursorPosCallback(window, mouse_position_callback);
 	glfwSetKeyCallback(window, key_callback);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback); // for window resize
@@ -1002,42 +1005,53 @@ int initialiseWindow() {
 	return 0;
 }
 
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+{
+
+	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+		clickedLeftButton = true;
+	}
+	else if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_RELEASE) {
+		clickedLeftButton = false;
+	}
+}
+
 void mouse_position_callback(GLFWwindow * window, double xPos, double yPos)
 {
-	
-	/* Taken from learnopengl.com*/
-	if (firstMouse)
-	{
+	if (clickedLeftButton == true) {
+		/* Taken from learnopengl.com*/
+		if (firstMouse)
+		{
+			lastX = xPos;
+			lastY = yPos;
+			firstMouse = false;
+		}
+
+		GLfloat xoffset = xPos - lastX;
+		GLfloat yoffset = lastY - yPos; // Reversed since y-coordinates go from bottom to left
 		lastX = xPos;
 		lastY = yPos;
-		firstMouse = false;
+
+		GLfloat sensitivity = 0.05;	// Change this value to your liking
+		xoffset *= sensitivity;
+		yoffset *= sensitivity;
+
+		yaw += xoffset;
+		pitch += yoffset;
+
+		// Make sure that when pitch is out of bounds, screen doesn't get flipped
+		if (pitch > 89.0f)
+			pitch = 89.0f;
+		if (pitch < -89.0f)
+			pitch = -89.0f;
+
+		glm::vec3 front;
+		front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+		front.y = sin(glm::radians(pitch));
+		front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+		cameraFront = glm::normalize(front);
+		/* Taken from learnopengl.com*/
 	}
-
-	GLfloat xoffset = xPos - lastX;
-	GLfloat yoffset = lastY - yPos; // Reversed since y-coordinates go from bottom to left
-	lastX = xPos;
-	lastY = yPos;
-
-	GLfloat sensitivity = 0.05;	// Change this value to your liking
-	xoffset *= sensitivity;
-	yoffset *= sensitivity;
-
-	yaw += xoffset;
-	pitch += yoffset;
-
-	// Make sure that when pitch is out of bounds, screen doesn't get flipped
-	if (pitch > 89.0f)
-		pitch = 89.0f;
-	if (pitch < -89.0f)
-		pitch = -89.0f;
-
-	glm::vec3 front;
-	front.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-	front.y = sin(glm::radians(pitch));
-	front.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-	cameraFront = glm::normalize(front);
-	/* Taken from learnopengl.com*/
-	
 }
 
 bool colisionDetection(glm::vec3 nextPosition) {
