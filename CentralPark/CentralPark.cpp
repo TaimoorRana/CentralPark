@@ -588,6 +588,7 @@ void createBuildingModelMatrices() {
 			model = glm::scale(model, glm::vec3(distr2(eng2), distr2(eng2), distr2(eng2)));
 
 			buildingModelMatrices.push_back(model);
+			
 			}
 		}
 }
@@ -612,7 +613,7 @@ void generateAdditionalBuilding(char c, unsigned qtBuilding) {
 		maxGround = currentGroundWidth.y;
 		minGround = groundWidthz;
 	}
-	std::uniform_int_distribution<> distrOld(parkWidth, minGround - 1);
+	std::uniform_int_distribution<> distrOld(0, minGround - 1);
 	std::uniform_int_distribution<> distrCurrent(minGround, maxGround - 1);
 
 	// for scaling
