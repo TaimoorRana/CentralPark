@@ -46,6 +46,7 @@ bool colisionDetection(glm::vec3 nextPosition);
 void checkGoingOutsideOfBoundary(glm::vec2 currentGroundWidth, glm::vec3 cameraPosition);
 void generateAdditionalGround(char c);
 void generateAdditionalBuilding(char c, unsigned qtBuilding);
+bool reachPark();
 
 // Window dimensions
 const GLuint WIDTH = 1600, HEIGHT = 1200;
@@ -112,11 +113,15 @@ int main()
 	glm::mat4 projection = glm::perspective(glm::radians(45.0f), (GLfloat)WIDTH / (GLfloat)HEIGHT, 1.0f, 400.0f);
 	while (!glfwWindowShouldClose(window))
 	{
-		cout << "\rCurrent position: " << cameraPos.x << " , " << cameraPos.z;
+		
 		// Check if any events have been activiated (key pressed, mouse moved etc.) and call corresponding response functions
 		glfwPollEvents();
 		do_movement();
-		
+		if (reachPark())
+			cout << "\rCool, you have found the Central Park!";
+		else
+			cout << "\rCurrent position: " << cameraPos.x << " , " << cameraPos.z;
+
 		// Render
 		// Clear the colorbuffer
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -679,7 +684,7 @@ void generateAdditionalBuilding(char c, unsigned qtBuilding) {
 
 			buildingModelMatrices.push_back(model); //** TO BE REPLACED WITH INSERT
 			int index = rand() % totalBuildings;
-			//buildingModelMatrices.insert(index, model);
+			//buildingModelMatrices.insert(index, &model);
 		}
 	}
 }
@@ -969,6 +974,18 @@ void welcomeDisplay() {
 	cout << " \t PgUP/PgDn: increase/decrease camera speed\tESC: close window" << endl;
 	cout << "______________________________________________________________________________________________________" << endl;
 
+}
+
+/*
+	function testing on x and z axis if camera position is in the park region, if yes, let the user know.
+	park region = park width + margin
+*/
+bool reachPark() {
+	GLfloat margin = 30.0f;
+	if (-(parkWidth + margin) < cameraPos.x && parkWidth + margin > cameraPos.x && -(parkWidth + margin) < cameraPos.z && parkWidth + margin > cameraPos.z){
+		return true;
+	}
+	return false;
 }
 
 // ----------------------------------------------------------------------------
