@@ -173,19 +173,12 @@ int main()
 		// create buildings
 		// need a better for loop 
 		glBindVertexArray(buildingVAO);
-		int BuildingDivisionByTexture = (totalBuildings-accumutaledAdditionalNewBuilding) / textureBuilding.size();
+		int BuildingDivisionByTexture = (totalBuildings) / textureBuilding.size();
 		int buildingToDraw = BuildingDivisionByTexture;
 		for (int i = 0; i < textureBuilding.size(); i++) {
 			glBindTexture(GL_TEXTURE_2D, textureBuilding[i]);
 			glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0, buildingToDraw);
 			buildingToDraw += BuildingDivisionByTexture;
-		}
-		BuildingDivisionByTexture = (accumutaledAdditionalNewBuilding) / textureBuilding.size();
-		buildingToDraw += BuildingDivisionByTexture;
-		for (int i = 0; i < textureBuilding.size(); i++) {
-			glBindTexture(GL_TEXTURE_2D, textureBuilding[i]);
-			glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0, buildingToDraw);
-			//buildingToDraw += BuildingDivisionByTexture;
 		}
 		//if (newBuildingGenerated == true) { // add different texture to newly generated building
 		//	int counter = 20, i = 0;
@@ -870,7 +863,7 @@ void getUserInput() {
 	totalBuildings = numberOfBuildingToGenerate;
 	system("CLS"); 
 	welcomeDisplay();
-	cout << "Let me get some threads:" << endl;
+	cout << "Let me get some threads go work:" << endl;
 }
 
 /*	
