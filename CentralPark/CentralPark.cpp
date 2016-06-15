@@ -645,7 +645,7 @@ void generateAdditionalBuilding(char c, unsigned qtBuilding) {
 			model = glm::translate(model, translation);
 			model = glm::scale(model, glm::vec3(distr2(eng2), distr2(eng2), distr2(eng2)));
 
-			//buildingModelMatrices.push_back(model); ** TO BE REPLACED WITH INSERT
+			buildingModelMatrices.push_back(model); //** TO BE REPLACED WITH INSERT
 			int index = rand() % totalBuildings;
 			//buildingModelMatrices.insert(index, model);
 		}
