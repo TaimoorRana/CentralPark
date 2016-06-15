@@ -63,7 +63,7 @@ int buildingProgress; // for starting flow
 //ground
 GLuint groundVAO, groundVBO;
 GLuint textureGround;
-GLfloat groundWidth = 1000.0f;
+GLfloat groundWidth = 500.0f;
 GLfloat groundWidthz = groundWidth;
 glm::vec2 currentGroundWidth = { groundWidth, groundWidth }; // format : < x, z>
 glm::mat4 groundModel(1.0f);
@@ -87,7 +87,6 @@ GLfloat highestScaleValue = 10.0f; // used for scaling buildings
 
 //camera
 glm::vec3 cameraPos(0.0f, 3.0f, 0.0f), cameraFront(0.0f, 0.0f, -1.0f); // original
-//glm::vec3 cameraPos(990.0f, 3.0f, 990.0f), cameraFront(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp(glm::normalize(glm::cross( glm::vec3(1,0,0), cameraFront)));
 GLfloat yaw = -90.0f;	// Yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right (due to how Eular angles work) so we initially rotate a bit to the left.
 GLfloat pitch = 0.0f;
@@ -112,7 +111,7 @@ bool firstMouse = true;
 
 int main()
 {
-	//getUserInput();
+	getUserInput();
 	int e = initialiseWindow();
 	if (e != 0) {
 		return e;
@@ -129,11 +128,11 @@ int main()
 		// Check if any events have been activiated (key pressed, mouse moved etc.) and call corresponding response functions
 		glfwPollEvents();
 		do_movement();
-		/*if (reachPark())
+		if (reachPark())
 			cout << "\rCool, you have found the Central Park!";
 		else
 			cout << "\rCurrent position: " << cameraPos.x << " , " << cameraPos.z;
-*/
+
 		// Render
 		// Clear the colorbuffer
 		glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -197,6 +196,7 @@ int main()
 			glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0, buildingToDraw);
 			buildingToDraw += BuildingDivisionByTexture;
 		}
+		// *** alternative algorighm -> drawback affect the performance negatively
 		//if (newBuildingGenerated == true) { // add different texture to newly generated building
 		//	int counter = 20, i = 0;
 		//	while (counter < accumutaledAdditionalNewBuilding) {
@@ -207,6 +207,7 @@ int main()
 		//		i++;
 		//	}
 		//}
+
 		glBindVertexArray(0);
 		glBindTexture(GL_TEXTURE_2D, texturePark);
 
@@ -220,9 +221,9 @@ int main()
 		glUniformMatrix4fv(glGetUniformLocation(modelShader.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 		glUniformMatrix4fv(glGetUniformLocation(modelShader.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
-		/*GLuint textureTree;
+		GLuint textureTree;
 		createTexture(textureTree, "Images/tree.jpg");
-		glBindTexture(GL_TEXTURE_2D, textureTree);*/
+		glBindTexture(GL_TEXTURE_2D, textureTree);
 		
 		model = glm::mat4(1.0f);
 		model = glm::translate(model, glm::vec3(0.0f, 0, -10.0f)); // Translate it down a bit so it's at the center of the scene
@@ -653,11 +654,11 @@ void createBuildingModelMatrices() {
 
 			buildingModelMatrices.push_back(model);
 			
-			/*printProgressReport(++buildingProgress);
+			printProgressReport(++buildingProgress);
 			if (buildingProgress == totalBuildings) {
 				cout << "\nBOOM! Done. I know I'm Powerful.\nHmmmm... where is the Central Park?" << endl;
 
-			}*/
+			}
 			
 			}
 		}
@@ -1082,8 +1083,8 @@ int initialiseWindow() {
 	glDepthFunc(GL_LESS);
 
 	//generate random camera position
-	//cameraPos.x = rand() % (int)groundWidth;
-	//cameraPos.z = rand() % (int)groundWidth;
+	cameraPos.x = rand() % (int)groundWidth;
+	cameraPos.z = rand() % (int)groundWidth;
 	
 	return 0;
 }
