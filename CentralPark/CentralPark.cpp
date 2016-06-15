@@ -101,8 +101,8 @@ int main()
 	//getUserInput();
 	initialiseWindow();
 	Shader modelShader("TextFiles/model_loading_vertex.shader", "TextFiles/model_loading_fragment.shader");
-	Model ourModel("Models/Nanosuit/nanosuit.obj");
-	//Model ourModel("Models/FinalBaseMesh.obj");
+	//Model ourModel("Models/Nanosuit/nanosuit.obj");
+	Model ourModel("Models/FinalBaseMesh.obj");
 	// GAME LOOP START HERE
 	glm::mat4 projection = glm::perspective(glm::radians(45.0f), (GLfloat)WIDTH / (GLfloat)HEIGHT, 1.0f, 100.0f);
 	while (!glfwWindowShouldClose(window))
@@ -134,16 +134,7 @@ int main()
 		glBindVertexArray(0);
 		glDepthMask(GL_TRUE);
 
-		modelShader.Use();
-		glUniformMatrix4fv(glGetUniformLocation(modelShader.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-		glUniformMatrix4fv(glGetUniformLocation(modelShader.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
-
-		// Draw the loaded model
-		glm::mat4 model(1.0f);
-		model = glm::translate(model, glm::vec3(0.0f, -1.75f, -10.0f)); // Translate it down a bit so it's at the center of the scene
-		model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));	// It's a bit too big for our scene, so scale it down
-		glUniformMatrix4fv(glGetUniformLocation(modelShader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
-		ourModel.Draw(modelShader);
+		
 
 
 
@@ -152,7 +143,8 @@ int main()
 		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
 		
-		model = glm::mat4(1.0f);
+		
+		glm::mat4 model(1.0f);
 		projection = glm::perspective(glm::radians(45.0f), (GLfloat)WIDTH / (GLfloat)HEIGHT, 1.0f, 200.0f);
 
 		GLuint modelLoc = glGetUniformLocation(groundShader->Program, "model");
@@ -186,6 +178,16 @@ int main()
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
 		
+		modelShader.Use();
+		glUniformMatrix4fv(glGetUniformLocation(modelShader.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+		glUniformMatrix4fv(glGetUniformLocation(modelShader.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+
+		// Draw the loaded model
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, glm::vec3(0.0f, -1.75f, -10.0f)); // Translate it down a bit so it's at the center of the scene
+		model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));	// It's a bit too big for our scene, so scale it down
+		glUniformMatrix4fv(glGetUniformLocation(modelShader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		ourModel.Draw(modelShader);
 		
 		
 		// Swap the screen buffers
