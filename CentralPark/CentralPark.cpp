@@ -103,6 +103,7 @@ int main()
 	Shader modelShader("TextFiles/model_loading_vertex.shader", "TextFiles/model_loading_fragment.shader");
 	//Model ourModel("Models/Nanosuit/nanosuit.obj");
 	Model ourModel("Models/FinalBaseMesh.obj");
+	//Model ourModel("Models/tower.obj");
 	// GAME LOOP START HERE
 	glm::mat4 projection = glm::perspective(glm::radians(45.0f), (GLfloat)WIDTH / (GLfloat)HEIGHT, 1.0f, 100.0f);
 	while (!glfwWindowShouldClose(window))
@@ -178,6 +179,7 @@ int main()
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
 		
+		glBindTexture(GL_TEXTURE_2D, 0);
 		modelShader.Use();
 		glUniformMatrix4fv(glGetUniformLocation(modelShader.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 		glUniformMatrix4fv(glGetUniformLocation(modelShader.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
