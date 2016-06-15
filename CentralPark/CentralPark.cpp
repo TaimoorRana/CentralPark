@@ -158,6 +158,8 @@ int main()
 		glDepthMask(GL_TRUE);
 
 
+
+
 		groundShader->Use(); 
 
 		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
@@ -215,27 +217,26 @@ int main()
 		glBindVertexArray(parkVAO);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
-		
+		glBindTexture(GL_TEXTURE_2D, 0); // switch to default texture i.e none
+
 		// Draw the loaded model
 		modelShader.Use();
 		glUniformMatrix4fv(glGetUniformLocation(modelShader.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 		glUniformMatrix4fv(glGetUniformLocation(modelShader.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
-		GLuint textureTree;
-		createTexture(textureTree, "Images/tree.jpg");
-		glBindTexture(GL_TEXTURE_2D, textureTree);
-		
-		model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(0.0f, 0, -10.0f)); // Translate it down a bit so it's at the center of the scene
-		model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));    // It's a bit too big for our scene, so scale it down
-		glUniformMatrix4fv(glGetUniformLocation(modelShader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
-		ourModel.Draw(modelShader);
+		//GLuint textureTree;
+		//createTexture(textureTree, "Images/tree.jpg");
+		//glBindTexture(GL_TEXTURE_2D, textureTree);
+		GLfloat translateFactor = -10.0f;
 
-		model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(0.0f, 0, 20.0f)); // Translate it down a bit so it's at the center of the scene
-		model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));    // It's a bit too big for our scene, so scale it down
-		glUniformMatrix4fv(glGetUniformLocation(modelShader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
-		ourModel.Draw(modelShader);
+		for (int i = 0; i < 5; i++) {
+			model = glm::mat4(1.0f);
+			model = glm::translate(model, glm::vec3(0.0f, 0, translateFactor)); // Translate it down a bit so it's at the center of the scene
+			model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));    // It's a bit too big for our scene, so scale it down
+			glUniformMatrix4fv(glGetUniformLocation(modelShader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+			ourModel.Draw(modelShader);
+			translateFactor += 10.0f;
+		}
 
 		// Swap the screen buffers
 		glfwSwapBuffers(window);
