@@ -113,9 +113,9 @@ int main()
 {
 	getUserInput();
 	int e = initialiseWindow();
-	if (e != 0) {
-		return e;
-	}
+	//if (e != 0) {
+	//	return e;
+	//}
 
 	Shader modelShader("TextFiles/model_loading_vertex.shader", "TextFiles/model_loading_fragment.shader");
 	Model ourModel("Models/tree_oak.obj");
@@ -331,7 +331,7 @@ void createPark() {
 
 	GLfloat y = -0.5f, z = parkWidth;
 
-	GLfloat textureSize = 200;
+	GLfloat textureSize = 10;
 	GLfloat verticesPark[] = {
 		// triangle 1						texture						normals 
 		-parkWidth, y, -parkWidth,			0.0f, 0.0f,					0.0f,1.0f,0.0f,
@@ -546,7 +546,7 @@ void do_movement()
 			cameraPos += nextPosition;
 		}
 		else {
-			cameraPos -= nextPosition * cameraSpeed * 100.0f;
+			cameraPos -= nextPosition * cameraSpeed * 10.0f;
 		}
 		checkGoingOutsideOfBoundary(currentGroundWidth, cameraPos); // check if going outside of ground boundary
 
@@ -556,7 +556,7 @@ void do_movement()
 		if (!colisionDetection(nextPosition)) {
 			cameraPos -= nextPosition;
 		} else{
-			cameraPos += nextPosition * cameraSpeed * 100.0f;
+			cameraPos += nextPosition * cameraSpeed * 10.0f;
 		}
 		checkGoingOutsideOfBoundary(currentGroundWidth, cameraPos); // check if going outside of ground boundary
 		
@@ -720,7 +720,7 @@ void generateAdditionalBuilding(char c, unsigned qtBuilding) {
 
 			buildingModelMatrices.push_back(model);
 		}
-		random_shuffle(buildingModelMatrices.begin(), buildingModelMatrices.end()); // shuffle so that the additional building gets different texture
+		//random_shuffle(buildingModelMatrices.begin(), buildingModelMatrices.end()); // shuffle so that the additional building gets different texture
 	}
 }
 
@@ -1149,8 +1149,8 @@ bool colisionDetection(glm::vec3 nextPosition) {
 		int buildingLowX = buildingPosition.x - xScale;
 		int buildingHighZ = buildingPosition.z + zScale;
 		int buildingLowZ = buildingPosition.z - zScale;
-		if (((int)cameraPos.x <= buildingHighX && (int)cameraPos.x >= buildingLowX)   && 
-			((int)cameraPos.z <= buildingHighZ && (int)cameraPos.z >= buildingLowZ)) {
+		if ((((int)cameraPos.x + (int)nextPosition.x) <= buildingHighX + 1 && ((int)cameraPos.x + (int)nextPosition.x) >= buildingLowX -1)   &&
+			((int)cameraPos.z + (int)nextPosition.z) <= buildingHighZ +1 && ((int)cameraPos.z + (int)nextPosition.z) >= buildingLowZ-1) {
 			// collision occured
 			return true;
 		}
