@@ -102,7 +102,7 @@ bool firstMouse = true;
 
 int main()
 {
-	//getUserInput();
+	getUserInput();
 	int e = initialiseWindow();
 	if (e != 0) {
 		return e;
@@ -226,22 +226,22 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 	if (key == GLFW_KEY_PAGE_DOWN && action == GLFW_PRESS)
 		cameraSpeed -= 0.05f;
 	// toggle to change view to looking down from sky
-	if (key == GLFW_KEY_T && action == GLFW_PRESS) {
-		if (changeView = true) {
-			changeView = false;
-			cameraTempStore = cameraFront;
-			cameraFront = cameraPos;
-			cameraUp = {0.0f, 0.0f, -1.0f};
-			cameraPos.y = 10.0f;
-		}
-		else {
-			changeView = true;
-			cameraFront = cameraTempStore;
-			cameraUp = { 0.0f, 1.0f, 0.0f };
-			cameraPos.y = 3.0f;
-		}
+	//if (key == GLFW_KEY_T && action == GLFW_PRESS) {
+	//	if (changeView = true) {
+	//		changeView = false;
+	//		cameraTempStore = cameraFront;
+	//		cameraFront = cameraPos;
+	//		cameraUp = {0.0f, 0.0f, -1.0f};
+	//		cameraPos.y = 10.0f;
+	//	}
+	//	else {
+	//		changeView = true;
+	//		cameraFront = cameraTempStore;
+	//		cameraUp = { 0.0f, 1.0f, 0.0f };
+	//		cameraPos.y = 3.0f;
+	//	}
 
-	}
+	//}
 
 }
 
@@ -614,6 +614,12 @@ void createBuildingModelMatrices() {
 
 			buildingModelMatrices.push_back(model);
 			
+			printProgressReport(++buildingProgress);
+			if (buildingProgress == totalBuildings) {
+				cout << "\nBOOM! Done. I know I'm Powerful.\nHmmmm... where is the Central Park?" << endl;
+
+			}
+			
 			}
 		}
 }
@@ -793,7 +799,7 @@ void generateSkybox() {
 */
 void checkGoingOutsideOfBoundary(glm::vec2 currentGroundWidth, glm::vec3 cameraPosition) {
 	// reminder format of vec2 currentGroundWidth < x, z >  == std :< x, y >
-	GLfloat padding = 40.0f;
+	GLfloat padding = 20.0f;
 	if (-currentGroundWidth.x + padding > cameraPosition.x || currentGroundWidth.x - padding < cameraPosition.x)
 		// test for ground boundary is : -x > cameraPos.x > +x, with a padding 
 		generateAdditionalGround('x');
@@ -958,9 +964,10 @@ void welcomeDisplay() {
 	cout << "           /_/_/_/_/:\\/::\\ \\:/__  __ /\\:::::/\\:\\/____/ \\/____/____/__/\\  /\\  / /  \\/  \\/_" << endl;
 	cout << "              ----------------------------------------------------------------------" << endl;
 	cout << "               ascii art from ascii-code.com                          An OpenGL 3.3" << endl;
-	cout << "=================================================================================================" << endl;
-	cout << " CONTROL : G - generate city   N - generate new buildings (to add all the control here) \n" << endl;
-	cout << "_________________________________________________________________________________________________" << endl;
+	cout << "======================================================================================================" << endl;
+	cout << " CONTROL:W/UP: moving up\tS/DOWN: moving down\tA/LEFT: rotate left\tD/RIGHT: rotate right" << endl;
+	cout << " \t PgUP/PgDn: increase/decrease camera speed\tESC: close window" << endl;
+	cout << "______________________________________________________________________________________________________" << endl;
 
 }
 
