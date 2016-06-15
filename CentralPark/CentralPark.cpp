@@ -173,19 +173,26 @@ int main()
 		// create buildings
 		// need a better for loop 
 		glBindVertexArray(buildingVAO);
-		int BuildingDivisionByTexture = (totalBuildings) / textureBuilding.size();
+		int BuildingDivisionByTexture = (totalBuildings-accumutaledAdditionalNewBuilding) / textureBuilding.size();
 		int buildingToDraw = BuildingDivisionByTexture;
 		for (int i = 0; i < textureBuilding.size(); i++) {
 			glBindTexture(GL_TEXTURE_2D, textureBuilding[i]);
 			glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0, buildingToDraw);
 			buildingToDraw += BuildingDivisionByTexture;
 		}
+		BuildingDivisionByTexture = (accumutaledAdditionalNewBuilding) / textureBuilding.size();
+		buildingToDraw += BuildingDivisionByTexture;
+		for (int i = 0; i < textureBuilding.size(); i++) {
+			glBindTexture(GL_TEXTURE_2D, textureBuilding[i]);
+			glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0, buildingToDraw);
+			//buildingToDraw += BuildingDivisionByTexture;
+		}
 		//if (newBuildingGenerated == true) { // add different texture to newly generated building
 		//	int counter = 20, i = 0;
 		//	while (counter < accumutaledAdditionalNewBuilding) {
 		//		if (i >= textureBuilding.size()) { i = 0; }
 		//		glBindTexture(GL_TEXTURE_2D, textureBuilding[i]);
-		//		glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0, buildingToDraw+counter);
+		//		glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0, counter);
 		//		counter += 20;
 		//		i++;
 		//	}
@@ -799,7 +806,7 @@ void generateSkybox() {
 */
 void checkGoingOutsideOfBoundary(glm::vec2 currentGroundWidth, glm::vec3 cameraPosition) {
 	// reminder format of vec2 currentGroundWidth < x, z >  == std :< x, y >
-	GLfloat padding = 20.0f;
+	GLfloat padding = 40.0f;
 	if (-currentGroundWidth.x + padding > cameraPosition.x || currentGroundWidth.x - padding < cameraPosition.x)
 		// test for ground boundary is : -x > cameraPos.x > +x, with a padding 
 		generateAdditionalGround('x');
@@ -816,7 +823,7 @@ void generateAdditionalGround(char c) {
 	case 'x': {
 		groundModel = glm::scale(groundModel, glm::vec3(1.015f, 1.0f, 1.0f)); 
 		groundWidth = currentGroundWidth.x;
-		currentGroundWidth.x = currentGroundWidth.x * 1.005; // scale factor lower than actual transformation to ensure more ground than recorded
+		currentGroundWidth.x = currentGroundWidth.x * 1.014; // scale factor lower than actual transformation to ensure more ground than recorded
 		additionalNumberBuilding = rand() % 75 + 1;
 		generateAdditionalBuilding('x', additionalNumberBuilding); // function takes which axis is growing and number of new building
 		createBuilding();
@@ -825,7 +832,7 @@ void generateAdditionalGround(char c) {
 	case 'z': {
 		groundModel = glm::scale(groundModel, glm::vec3(1.0f, 1.0f, 1.015f));
 		groundWidthz = currentGroundWidth.y;
-		currentGroundWidth.y = currentGroundWidth.y * 1.005;  // scale factor lower than actual transformation to ensure more ground than recorded
+		currentGroundWidth.y = currentGroundWidth.y * 1.014;  // scale factor lower than actual transformation to ensure more ground than recorded
 		additionalNumberBuilding = rand() % 75 + 1;
 		generateAdditionalBuilding('z', additionalNumberBuilding); // function takes which axis is growing and number of new building
 		createBuilding();
