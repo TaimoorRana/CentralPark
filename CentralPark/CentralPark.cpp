@@ -100,6 +100,9 @@ int main()
 {
 	//getUserInput();
 	int e = initialiseWindow();
+	if (e != 0) {
+		return e;
+	}
 
 	// GAME LOOP START HERE
 	glm::mat4 projection = glm::perspective(glm::radians(45.0f), (GLfloat)WIDTH / (GLfloat)HEIGHT, 1.0f, 400.0f);
@@ -953,7 +956,7 @@ int initialiseWindow() {
 
 
 	// Create a GLFWwindow object that we can use for GLFW's functions
-	window = glfwCreateWindow(WIDTH, HEIGHT, "LearnOpenGL", nullptr, nullptr);
+	window = glfwCreateWindow(WIDTH, HEIGHT, "Central Park", nullptr, nullptr);
 	if (window == nullptr)
 	{
 		std::cout << "Failed to create GLFW window" << std::endl;
