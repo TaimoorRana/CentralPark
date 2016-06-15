@@ -718,10 +718,9 @@ void generateAdditionalBuilding(char c, unsigned qtBuilding) {
 			model = glm::translate(model, translation);
 			model = glm::scale(model, glm::vec3(distr2(eng2), distr2(eng2), distr2(eng2)));
 
-			buildingModelMatrices.push_back(model); //** TO BE REPLACED WITH INSERT
-			int index = rand() % totalBuildings;
-			//buildingModelMatrices.insert(index, &model);
+			buildingModelMatrices.push_back(model);
 		}
+		random_shuffle(buildingModelMatrices.begin(), buildingModelMatrices.end()); // shuffle so that the additional building gets different texture
 	}
 }
 
