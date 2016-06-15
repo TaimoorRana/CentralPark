@@ -1,6 +1,12 @@
 // Other headers
 #include "stdafx.h"
 
+// assimp stuff
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+#include "Model.h"
+
 #include <Windows.h>
 #include <iostream>
 #include <string>
@@ -57,7 +63,7 @@ int buildingProgress; // for starting flow
 //ground
 GLuint groundVAO, groundVBO;
 GLuint textureGround;
-GLfloat groundWidth = 1000.0f;
+GLfloat groundWidth = 500.0f;
 GLfloat groundWidthz = groundWidth;
 glm::vec2 currentGroundWidth = { groundWidth, groundWidth }; // format : < x, z>
 glm::mat4 groundModel(1.0f);
@@ -81,7 +87,6 @@ GLfloat highestScaleValue = 10.0f; // used for scaling buildings
 
 //camera
 glm::vec3 cameraPos(0.0f, 3.0f, 0.0f), cameraFront(0.0f, 0.0f, -1.0f); // original
-//glm::vec3 cameraPos(990.0f, 3.0f, 990.0f), cameraFront(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp(glm::normalize(glm::cross( glm::vec3(1,0,0), cameraFront)));
 GLfloat yaw = -90.0f;	// Yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right (due to how Eular angles work) so we initially rotate a bit to the left.
 GLfloat pitch = 0.0f;
@@ -98,6 +103,9 @@ Shader * skyboxShader;
 GLuint skyboxVAO;
 GLuint cubemapTexture;
 
+// model loading 
+GLuint textureTree;
+
 // mouse
 bool firstMouse = true;
 
@@ -108,6 +116,9 @@ int main()
 	if (e != 0) {
 		return e;
 	}
+
+	Shader modelShader("TextFiles/model_loading_vertex.shader", "TextFiles/model_loading_fragment.shader");
+	Model ourModel("Models/tree_oak.obj");
 
 	// GAME LOOP START HERE
 	glm::mat4 projection = glm::perspective(glm::radians(45.0f), (GLfloat)WIDTH / (GLfloat)HEIGHT, 1.0f, 400.0f);
@@ -131,32 +142,32 @@ int main()
 		// Draw skybox first
 		glEnable(GL_DEPTH_CLAMP);
 		glDepthMask(GL_FALSE);// Remember to turn depth writing off
-		skyboxShader->use();
+		skyboxShader->Use();
 		glm::mat4 view = glm::mat4(glm::mat3(glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp)));	// Remove any translation component of the view matrix
 		
-		glUniformMatrix4fv(glGetUniformLocation(skyboxShader->program, "view"), 1, GL_FALSE, glm::value_ptr(view));
-		glUniformMatrix4fv(glGetUniformLocation(skyboxShader->program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+		glUniformMatrix4fv(glGetUniformLocation(skyboxShader->Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+		glUniformMatrix4fv(glGetUniformLocation(skyboxShader->Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 		
 		// skybox cube
 		glBindVertexArray(skyboxVAO);
 		glActiveTexture(GL_TEXTURE0);
-		glUniform1i(glGetUniformLocation(skyboxShader->program, "skybox"), 0);
+		glUniform1i(glGetUniformLocation(skyboxShader->Program, "skybox"), 0);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 		glBindVertexArray(0);
 		glDepthMask(GL_TRUE);
 
 
-		groundShader->use(); 
+		groundShader->Use(); 
 
 		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
 		glm::mat4  model(1.0f);
 		projection = glm::perspective(glm::radians(45.0f), (GLfloat)WIDTH / (GLfloat)HEIGHT, 1.0f, 200.0f);
 
-		GLint modelLoc = glGetUniformLocation(groundShader->program, "model");
-		GLint viewLoc = glGetUniformLocation(groundShader->program, "view");
-		GLint projLoc = glGetUniformLocation(groundShader->program, "projection");
+		GLint modelLoc = glGetUniformLocation(groundShader->Program, "model");
+		GLint viewLoc = glGetUniformLocation(groundShader->Program, "view");
+		GLint projLoc = glGetUniformLocation(groundShader->Program, "projection");
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(groundModel));
@@ -168,9 +179,9 @@ int main()
 		glBindVertexArray(0);
 
 
-		buildingShader->use();
+		buildingShader->Use();
 		model = glm::mat4(1.0f);
-		modelLoc = glGetUniformLocation(buildingShader->program, "model");
+		modelLoc = glGetUniformLocation(buildingShader->Program, "model");
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
@@ -185,6 +196,7 @@ int main()
 			glDrawElementsInstanced(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0, buildingToDraw);
 			buildingToDraw += BuildingDivisionByTexture;
 		}
+		// *** alternative algorighm -> drawback affect the performance negatively
 		//if (newBuildingGenerated == true) { // add different texture to newly generated building
 		//	int counter = 20, i = 0;
 		//	while (counter < accumutaledAdditionalNewBuilding) {
@@ -195,6 +207,7 @@ int main()
 		//		i++;
 		//	}
 		//}
+
 		glBindVertexArray(0);
 		glBindTexture(GL_TEXTURE_2D, texturePark);
 
@@ -203,7 +216,27 @@ int main()
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
 		
+		// Draw the loaded model
+		modelShader.Use();
+		glUniformMatrix4fv(glGetUniformLocation(modelShader.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+		glUniformMatrix4fv(glGetUniformLocation(modelShader.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+
+		GLuint textureTree;
+		createTexture(textureTree, "Images/tree.jpg");
+		glBindTexture(GL_TEXTURE_2D, textureTree);
 		
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, glm::vec3(0.0f, 0, -10.0f)); // Translate it down a bit so it's at the center of the scene
+		model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));    // It's a bit too big for our scene, so scale it down
+		glUniformMatrix4fv(glGetUniformLocation(modelShader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		ourModel.Draw(modelShader);
+
+		model = glm::mat4(1.0f);
+		model = glm::translate(model, glm::vec3(0.0f, 0, 20.0f)); // Translate it down a bit so it's at the center of the scene
+		model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));    // It's a bit too big for our scene, so scale it down
+		glUniformMatrix4fv(glGetUniformLocation(modelShader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		ourModel.Draw(modelShader);
+
 		// Swap the screen buffers
 		glfwSwapBuffers(window);
 	}
@@ -293,6 +326,8 @@ void createGround() {
 
 void createPark() {
 	createTexture(texturePark, "Images/park.jpg");
+	createTexture(textureTree, "Images/tree.jpg");
+
 	GLfloat y = -0.5f, z = parkWidth;
 
 	GLfloat textureSize = 200;
@@ -1035,6 +1070,7 @@ int initialiseWindow() {
 	groundShader = new Shader("TextFiles/vertexGround.shader", "TextFiles/fragment.shader");
 	skyboxShader = new Shader("TextFiles/skyBoxVertex.shader", "TextFiles/skyBoxFragment.shader");
 	buildingShader = new Shader("TextFiles/vertex.shader", "TextFiles/fragment.shader");
+
 	generateSkybox();
 	createAllBuildingTextures();
 	createBuildingModelMatrices();
