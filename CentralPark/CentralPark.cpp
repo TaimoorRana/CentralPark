@@ -22,6 +22,7 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include "Model.h"
 
 using namespace std;
 
@@ -57,7 +58,7 @@ int buildingProgress; // for starting flow
 //ground
 GLuint groundVAO, groundVBO;
 GLuint textureGround;
-GLfloat groundWidth = 1000.0f;
+GLfloat groundWidth = 100.0f;
 
 //park
 GLuint parkVAO, parkVBO;
@@ -67,7 +68,7 @@ GLfloat parkWidth = 50.0f;
 //buildings
 GLuint buildingVAO, buildingVBO, instanceVBO;
 std::vector<GLuint> textureBuilding;
-int totalBuildings = 5000;
+int totalBuildings = 100;
 std::vector<glm::vec3> buldingTranslations;
 std::vector<char*> buildingImagesLocations;
 std::vector<glm::mat4> buildingModelMatrices; // used for scaling buildings
@@ -77,7 +78,7 @@ GLfloat highestScaleValue = 10.0f; // used for scaling buildings
 //camera
 glm::vec3 cameraPos(0.0f, 3.0f, 0.0f), cameraFront(0.0f, 0.0f, -1.0f);
 glm::vec3 cameraUp(glm::normalize(glm::cross( glm::vec3(1,0,0), cameraFront)));
-GLfloat yaw = -90.0f;	// Yaw is initialized to -90.0 degrees since a yaw of 0.0 results in a direction vector pointing to the right (due to how Eular angles work) so we initially rotate a bit to the left.
+GLfloat yaw = -90.0f;	
 GLfloat pitch = 0.0f;
 GLfloat lastX = WIDTH / 2.0;
 GLfloat lastY = HEIGHT / 2.0;
@@ -91,13 +92,19 @@ GLuint cubemapTexture;
 // mouse
 bool firstMouse = true;
 
+// models
+
+
 int main()
 {
+	
 	//getUserInput();
 	initialiseWindow();
-
+	Shader modelShader("TextFiles/model_loading_vertex.shader", "TextFiles/model_loading_fragment.shader");
+	Model ourModel("Models/Nanosuit/nanosuit.obj");
+	//Model ourModel("Models/FinalBaseMesh.obj");
 	// GAME LOOP START HERE
-	glm::mat4 projection = glm::perspective(glm::radians(45.0f), (GLfloat)WIDTH / (GLfloat)HEIGHT, 1.0f, 400.0f);
+	glm::mat4 projection = glm::perspective(glm::radians(45.0f), (GLfloat)WIDTH / (GLfloat)HEIGHT, 1.0f, 100.0f);
 	while (!glfwWindowShouldClose(window))
 	{
 		// Check if any events have been activiated (key pressed, mouse moved etc.) and call corresponding response functions
@@ -113,35 +120,44 @@ int main()
 		// Draw skybox first
 		glEnable(GL_DEPTH_CLAMP);
 		glDepthMask(GL_FALSE);// Remember to turn depth writing off
-		skyboxShader->use();
+		skyboxShader->Use();
 		glm::mat4 view = glm::mat4(glm::mat3(glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp)));	// Remove any translation component of the view matrix
 		
-		glUniformMatrix4fv(glGetUniformLocation(skyboxShader->program, "view"), 1, GL_FALSE, glm::value_ptr(view));
-		glUniformMatrix4fv(glGetUniformLocation(skyboxShader->program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+		glUniformMatrix4fv(glGetUniformLocation(skyboxShader->Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+		glUniformMatrix4fv(glGetUniformLocation(skyboxShader->Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 		// skybox cube
 		glBindVertexArray(skyboxVAO);
 		glActiveTexture(GL_TEXTURE0);
-		glUniform1i(glGetUniformLocation(skyboxShader->program, "skybox"), 0);
+		glUniform1i(glGetUniformLocation(skyboxShader->Program, "skybox"), 0);
 		glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 		glBindVertexArray(0);
 		glDepthMask(GL_TRUE);
 
+		modelShader.Use();
+		glUniformMatrix4fv(glGetUniformLocation(modelShader.Program, "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+		glUniformMatrix4fv(glGetUniformLocation(modelShader.Program, "view"), 1, GL_FALSE, glm::value_ptr(view));
+
+		// Draw the loaded model
+		glm::mat4 model(1.0f);
+		model = glm::translate(model, glm::vec3(0.0f, -1.75f, -10.0f)); // Translate it down a bit so it's at the center of the scene
+		model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));	// It's a bit too big for our scene, so scale it down
+		glUniformMatrix4fv(glGetUniformLocation(modelShader.Program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+		ourModel.Draw(modelShader);
 
 
 
-
-
-		groundShader->use(); 
+		groundShader->Use(); 
 
 		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
-		glm::mat4  model(1.0f);
+		
+		model = glm::mat4(1.0f);
 		projection = glm::perspective(glm::radians(45.0f), (GLfloat)WIDTH / (GLfloat)HEIGHT, 1.0f, 200.0f);
 
-		GLint modelLoc = glGetUniformLocation(groundShader->program, "model");
-		GLint viewLoc = glGetUniformLocation(groundShader->program, "view");
-		GLint projLoc = glGetUniformLocation(groundShader->program, "projection");
+		GLuint modelLoc = glGetUniformLocation(groundShader->Program, "model");
+		GLuint viewLoc = glGetUniformLocation(groundShader->Program, "view");
+		GLuint projLoc = glGetUniformLocation(groundShader->Program, "projection");
 		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(projLoc, 1, GL_FALSE, glm::value_ptr(projection));
 		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
@@ -169,6 +185,7 @@ int main()
 		glBindVertexArray(parkVAO);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		glBindVertexArray(0);
+		
 		
 		
 		// Swap the screen buffers
@@ -927,6 +944,7 @@ void initialiseWindow() {
 	// initialize shaders
 	groundShader = new Shader("TextFiles/vertex.shader", "TextFiles/fragment.shader");
 	skyboxShader = new Shader("TextFiles/skyBoxVertex.shader", "TextFiles/skyBoxFragment.shader");
+	
 	generateSkybox();
 	createAllBuildingTextures();
 	createBuildingModelMatrices();
